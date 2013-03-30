@@ -67,6 +67,8 @@ public abstract class Ranker {
         return new RankerConjunctive(options, arguments, indexer);
       case FAVORITE:
         return new RankerFavorite(options, arguments, indexer);
+      case COMPREHENSIVE:
+        return new RankerComprehensive(options, arguments, indexer);
       case COSINE:
     	  System.out.println("in cosine");
         return new CosineRanker(options, arguments, indexer);        
