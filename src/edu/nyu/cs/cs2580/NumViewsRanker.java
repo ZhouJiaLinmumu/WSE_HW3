@@ -40,8 +40,7 @@ public class NumViewsRanker extends Ranker {
 
 	public Vector<ScoredDocument> createNumViewsReverseSorted() {
 		HashMap<Integer, Integer> didView = createDiDViewMap();
-		Utility u = new Utility();
-		HashMap<Integer, Integer> sortedDidViewMap = u
+		HashMap<Integer, Integer> sortedDidViewMap = Utilities
 				.sortByComparator(didView);
 
 		Vector<ScoredDocument> vsd = new Vector<ScoredDocument>();
