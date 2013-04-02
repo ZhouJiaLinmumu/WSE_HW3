@@ -323,6 +323,12 @@ public class Utilities {
 		return tfIdf;
 	}
 	
+	/**
+	 * @author sujal
+	 * 
+	 * @param contents
+	 * @return
+	 */
 	public static Vector<String> getStemmed(String contents) {
 
 		if (contents == null) {
