@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -138,12 +139,36 @@ public class Utilities {
 
 		return unitVec;
 	}
+	
+	/**
+	 * @author sujal
+	 * @param list
+	 * @param norm
+	 * @return
+	 */
+	public static List<Pair<String, Double>> getNormalizedVector(
+			List<Pair<String, Double>> list, double norm) {
+		
+		if(list == null) {
+			return null;
+		}
+		
+		List<Pair<String, Double>> unitVec = new ArrayList<Pair<String,Double>>();		
+		double vecNorm = getVectorNorm(list, norm);
+		for(Pair<String, Double> pair : list) {
+			unitVec.add(new Pair<String, Double>(pair.getFirstElement(), pair.getSecondElement()/vecNorm));
+		}
+		
+		return unitVec;
+	}
+	
+	
 
 	/**
 	 * @author sujal
 	 * @param vec
 	 * @param p
-	 *            required norm of a vector. p <> 0 (does not handle for p ==
+	 *            required norm of a vector. p != 0 (does not handle for p ==
 	 *            infinity)
 	 * @return p-norm of the given vector
 	 */
@@ -157,6 +182,28 @@ public class Utilities {
 		for (String k : vec.keySet()) {
 			norm += Math.pow(vec.get(k), p);
 		}
+		norm = Math.pow(norm, 1d / p);
+
+		return norm;
+	}
+	
+	/**
+	 * @author sujal
+	 * @param vec
+	 * @param p
+	 * @return
+	 */
+	public static double getVectorNorm(List<Pair<String, Double>> list, Double p) {
+		double norm = 0;
+
+		if (p == 0 || list == null) {
+			return -1;
+		}
+		
+		for(Pair<String, Double> pair : list) {
+			norm += Math.pow(pair.getSecondElement(), p);
+		}
+		
 		norm = Math.pow(norm, 1d / p);
 
 		return norm;

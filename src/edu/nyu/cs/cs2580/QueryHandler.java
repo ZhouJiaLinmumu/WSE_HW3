@@ -2,6 +2,7 @@ package edu.nyu.cs.cs2580;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -206,17 +207,17 @@ class QueryHandler implements HttpHandler {
 				RankerFavorite rankerFavorite = (RankerFavorite) ranker;
 				
 				long start = System.currentTimeMillis();
-				Map<String, Double> termProb = rankerFavorite.runQuery(processedQuery,
+				List<Pair<String,Double>> termProb = rankerFavorite.runQuery(processedQuery,
 						cgiArgs._numResults, cgiArgs._numDocs, cgiArgs._numTerms);
 				long end = System.currentTimeMillis();
 				
 				StringBuffer response = new StringBuffer();
 				response.append("Time required : " + (end - start) + "ms\n\n");
 				// output the terms and their probabilities
-				for(String term : termProb.keySet()) {
-					response.append(term);
+				for(Pair<String, Double> pair : termProb) {
+					response.append(pair.getFirstElement());
 					response.append(":");
-					response.append(termProb.get(term));
+					response.append(pair.getSecondElement());
 					response.append("\n");
 				}
 				

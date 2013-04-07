@@ -76,7 +76,7 @@ public class RankerFavorite extends Ranker {
 		return sortedResults;
 	}
 
-	public Map<String, Double> runQuery(Query query, int numResults,
+	public List<Pair<String,Double>> runQuery(Query query, int numResults,
 			int numDocs, int numTerms) {
 		PriorityQueue<ScoredDocument> retrieval_results = new PriorityQueue<ScoredDocument>();
 		// query.processQuery();
@@ -99,7 +99,7 @@ public class RankerFavorite extends Ranker {
 		}
 		System.out.println("===============");
 
-		Map<String, Double> expandedQuery = getExpandedQuery(topResults,
+		List<Pair<String,Double>> expandedQuery = getExpandedQuery(topResults,
 				numTerms);
 
 		return expandedQuery;
@@ -112,7 +112,7 @@ public class RankerFavorite extends Ranker {
 	 * @param numTerms
 	 * @return
 	 */
-	private Map<String, Double> getExpandedQuery(
+	private List<Pair<String,Double>> getExpandedQuery(
 			Vector<ScoredDocument> topResults, int numTerms) {
 
 		/*
@@ -141,8 +141,9 @@ public class RankerFavorite extends Ranker {
 		for (ScoredDocument sDoc : topResults) {
 			DocumentIndexed dIndexed = (DocumentIndexed) _indexer.getDoc(sDoc
 					.getDocId());
-			
-			// adding 1 for smoothing in case a document does not contain any word.
+
+			// adding 1 for smoothing in case a document does not contain any
+			// word.
 			totWordCnt += 1 + dIndexed.getTotalWords();
 		}
 
@@ -161,26 +162,30 @@ public class RankerFavorite extends Ranker {
 			return null;
 		}
 
-		Map<String, Double> termProb = new HashMap<String, Double>();
-
+		//Map<String, Double> termProb = new LinkedHashMap<String, Double>();
+		List<Pair<String, Double>> termProb = new ArrayList<Pair<String,Double>>();
+		
 		String line = "";
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(cntFiles[0]));
 			String[] termCountInfo;
 			while ((line = br.readLine()) != null) {
-				termCountInfo = line.split(_termCntDelim);
-				termProb.put(termCountInfo[0],
-						Double.parseDouble(termCountInfo[1])/totWordCnt);
+				termCountInfo = line.split(_termCntDelim);				
+				termProb.add(new Pair<String, Double>(termCountInfo[0], Double.parseDouble(termCountInfo[1]) / totWordCnt));
 			}
 			br.close();
+
+			// delete the .cnt file
+			cntFiles[0].delete();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		// normalize the term probabilities
+
+		// normalize the term probabilities so that the sum of all probabilities
+		// is 1
 		termProb = Utilities.getNormalizedVector(termProb, 1);
 
-		return termProb;		
+		return termProb;
 	}
 
 	private void getTopTerms(int numTerms) {
@@ -189,11 +194,29 @@ public class RankerFavorite extends Ranker {
 		File[] cntFiles = indexDir.listFiles(ff);
 
 		int noOfFiles = cntFiles.length;
+
+		/*
+		 * A .cnt file is created for each .idx file and contains count of each
+		 * term in in the given set of top results. All these .cnt files are
+		 * then merged together pair-wise and keeps only top required terms.
+		 * Finally only 1 .cnt file should remain. So after every iteration of
+		 * merging, the total number of .cnt files should decrease.
+		 * 
+		 * This variable is used to keep track of this. The program is exited if
+		 * the number of files does not decrease because otherwise the system
+		 * will eventually crash as the program goes into infinite loop. This
+		 * may happen if the files are not deleted.
+		 */
+		int prevNoOfFiles;
+
 		System.out.println("no of files = " + noOfFiles);
 		/*
 		 * Loop till all .cnt files are not merged into just 1 file
 		 */
 		while (noOfFiles != 1) {
+
+			prevNoOfFiles = noOfFiles;
+
 			/*
 			 * All .cnt files are meged in pairs. So if the no. of .cnt files is
 			 * odd, ignore the last file
@@ -207,8 +230,8 @@ public class RankerFavorite extends Ranker {
 			 * numTerms are required after merging.
 			 */
 			for (int i = 0; i < noOfFiles; i += 2) {
-				//System.out.println("mrgng : " + cntFiles[i].getAbsolutePath()
-					//	+ ", " + cntFiles[i + 1].getAbsolutePath());
+				// System.out.println("mrgng : " + cntFiles[i].getAbsolutePath()
+				// + ", " + cntFiles[i + 1].getAbsolutePath());
 				mergeTermCountFiles(
 						cntFiles[i],
 						cntFiles[i + 1],
@@ -219,6 +242,11 @@ public class RankerFavorite extends Ranker {
 			// Get the number of remaining .cnt files
 			cntFiles = indexDir.listFiles(ff);
 			noOfFiles = cntFiles.length;
+
+			if (noOfFiles >= prevNoOfFiles) {
+				System.out.println("Error: Problem in merging .cnt files !!!");
+				System.exit(0);
+			}
 		}
 	}
 
@@ -236,10 +264,11 @@ public class RankerFavorite extends Ranker {
 			return;
 		}
 
-		/*System.out.println("merging : " + file1.getAbsolutePath() + ", "
-				+ file2.getAbsolutePath());
-		System.out.println("output file = " + outputFile);
-		*/
+		/*
+		 * System.out.println("merging : " + file1.getAbsolutePath() + ", " +
+		 * file2.getAbsolutePath()); System.out.println("output file = " +
+		 * outputFile);
+		 */
 
 		try {
 			BufferedReader br1 = new BufferedReader(new FileReader(file1));
@@ -249,111 +278,87 @@ public class RankerFavorite extends Ranker {
 			int termsMerged = 0;
 			String line1 = br1.readLine(), line2 = br2.readLine();
 			Scanner scanner1, scanner2;
-
-			MyPriorityQueue q1 = new MyPriorityQueue(numTerms);
-			MyPriorityQueue q2 = new MyPriorityQueue(numTerms);
-
-			// PriorityQueue<TermCount> q1 = new PriorityQueue<TermCount>();
-			// PriorityQueue<TermCount> q2 = new PriorityQueue<TermCount>();
+			String term1, term2;
+			int count1, count2;
 
 			while ((line1 != null) && (line2 != null)) {
-
-				//System.out.println("line1 = " + line1);
-				//System.out.println("line2 = " + line2);
 
 				scanner1 = new Scanner(line1);
 				scanner1.useDelimiter("[" + _termCntDelim + "\n]");
 				scanner2 = new Scanner(line2);
 				scanner2.useDelimiter("[" + _termCntDelim + "\n]");
 
-				// q1.add(new TermCount(scanner1.next(),
-				// Integer.parseInt(scanner1.next())));
-				// q2.add(new TermCount(scanner2.next(),
-				// Integer.parseInt(scanner2.next())));
-				q1.insertWithOverflow(new TermCount(scanner1.next(), Integer
-						.parseInt(scanner1.next())));
-				q2.insertWithOverflow(new TermCount(scanner2.next(), Integer
-						.parseInt(scanner2.next())));
+				term1 = scanner1.next();
+				count1 = scanner1.nextInt();
 
-				line1 = br1.readLine();
-				line2 = br2.readLine();
-			}
+				term2 = scanner2.next();
+				count2 = scanner2.nextInt();
 
-			//System.out.println("atleast one of them is null");
+				// write the term with greater count to the file
+				if (count1 >= count2) {
+					bw.write(term1);
+					bw.write(_termCntDelim);
+					bw.write(String.valueOf(count1));
+					bw.newLine();
 
-			// add the remaining info from non-null file, if any
-			if (line1 == null) {
-				//System.out.println("chking for info in 2");
-				while (line2 != null) {
-					scanner2 = new Scanner(line2);
-					scanner2.useDelimiter("[" + _termCntDelim + "\n]");
-
-					// q2.add(new TermCount(scanner2.next(),
-					// Integer.parseInt(scanner2.next())));
-					q2.insertWithOverflow(new TermCount(scanner2.next(),
-							Integer.parseInt(scanner2.next())));
-					line2 = br2.readLine();
-				}
-			} else {
-				System.out.println("chking for info in 1");
-				while (line1 != null) {
-					scanner1 = new Scanner(line1);
-					scanner1.useDelimiter("[" + _termCntDelim + "\n]");
-
-					// q1.add(new TermCount(scanner1.next(),
-					// Integer.parseInt(scanner1.next())));
-					q1.insertWithOverflow(new TermCount(scanner1.next(),
-							Integer.parseInt(scanner1.next())));
 					line1 = br1.readLine();
-				}
-			}
-
-			//System.out.println("done");
-
-			br1.close();
-			br2.close();
-
-			//System.out.println("priority queues construction done");
-
-			TermCount tc1, tc2;
-			tc1 = q1.pop();
-			tc2 = q2.pop();
-			// tc1 = q1.poll();
-			// tc2 = q2.poll();
-
-			//System.out.println("now merging queues");
-			termsMerged = 0;
-			while (tc1 != null && tc2 != null) {
-				if (tc1.getCount() >= tc2.getCount()) {
-					bw.write(tc1.getTerm());
-					bw.write(_termCntDelim);
-					bw.write(String.valueOf(tc1.getCount()));
-					bw.newLine();
-
-					tc1 = q1.pop();
-					// tc1 = q1.poll();
 				} else {
-					bw.write(tc2.getTerm());
+					bw.write(term2);
 					bw.write(_termCntDelim);
-					bw.write(String.valueOf(tc2.getCount()));
+					bw.write(String.valueOf(count2));
 					bw.newLine();
 
-					tc2 = q2.pop();
-					// tc2 = q2.poll();
+					line2 = br2.readLine();
 				}
 
 				termsMerged++;
-
-				// Only top 'numTerms' terms are required
-				if (termsMerged == numTerms) {
+				if (termsMerged >= numTerms) {
 					break;
 				}
 			}
+
+			if (termsMerged < numTerms) {
+				// add the remaining info from non-null file, if any
+				if (line1 == null) {
+					while (line2 != null) {
+						scanner2 = new Scanner(line2);
+						scanner2.useDelimiter("[" + _termCntDelim + "\n]");
+
+						term2 = scanner2.next();
+						count2 = scanner2.nextInt();
+						
+						bw.write(term2);
+						bw.write(_termCntDelim);
+						bw.write(String.valueOf(count2));
+						bw.newLine();
+
+						line2 = br2.readLine();
+					}
+				} else {
+					while (line1 != null) {
+						scanner1 = new Scanner(line1);
+						scanner1.useDelimiter("[" + _termCntDelim + "\n]");
+						
+						term1 = scanner1.next();
+						count1 = scanner1.nextInt();
+						
+						bw.write(term1);
+						bw.write(_termCntDelim);
+						bw.write(String.valueOf(count1));
+						bw.newLine();
+						
+						line1 = br1.readLine();
+					}
+				}
+			}
+
+			br1.close();
+			br2.close();			
 			bw.close();
-			
-			//System.out.println("deleting file1");
+
+			// System.out.println("deleting file1");
 			file1.delete();
-			//System.out.println("deleting file2");
+			// System.out.println("deleting file2");
 			file2.delete();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -494,24 +499,23 @@ public class RankerFavorite extends Ranker {
 			 * term and total term count in all the documents in input list.
 			 */
 
-			
 			StringBuilder sBuilder = new StringBuilder();
 			StringBuilder sBuilderTmp = new StringBuilder();
 			TermCount termCount;
 			while ((termCount = topterms.pop()) != null) {
-				
+
 				/*
-				 * Save items in reverse order as the priority queue gives elements 
-				 * in ascending order.
+				 * Save items in reverse order as the priority queue gives
+				 * elements in ascending order.
 				 */
-				
+
 				sBuilderTmp = new StringBuilder();
 				sBuilderTmp.append(termCount.getTerm());
 				sBuilderTmp.append(_termCntDelim);
 				sBuilderTmp.append(String.valueOf(termCount.getCount()));
 				sBuilderTmp.append("\n");
-				
-				sBuilder.insert(0, sBuilderTmp);				
+
+				sBuilder.insert(0, sBuilderTmp);
 			}
 
 			// write term-count info to the output file
@@ -610,16 +614,30 @@ public class RankerFavorite extends Ranker {
 
 	public static void main(String[] args) {
 		 testProcTermCnt();
-		//testPriorityQueue();
+		// testPriorityQueue();
 		// testJsoup();
-		 //testMergeCntFiles();
+		// testMergeCntFiles();
+		//testLinkedHashmap();
 	}
-	
+
+	private static void testLinkedHashmap() {
+		Map<String, Integer> m = new HashMap<String, Integer>();
+		m.put("a", 0);
+		m.put("b", 0);
+		m.put("c", 0);
+		m.put("d", 0);
+		m.put("e", 0);
+		
+		for(String k : m.keySet()) {
+			System.out.println(k);
+		}
+	}
+
 	private static void testMergeCntFiles() {
-		File f1 = new File("data/index/a.idx.cnt");
+		File f1 = new File("data/index/t.idx.cnt");
 		File f2 = new File("data/index/w.idx.cnt");
 		String outputfile = "data/index/o1.cnt";
-		
+
 		RankerFavorite rf = new RankerFavorite(null, null, null);
 		rf.mergeTermCountFiles(f1, f2, outputfile, 10);
 	}
@@ -689,18 +707,19 @@ public class RankerFavorite extends Ranker {
 			QueryPhrase processedQuery = new QueryPhrase("tendulkar");
 			processedQuery.processQuery();
 
-			Map<String, Double> termProb = r.runQuery(processedQuery, 10, 10, 10);
-			
+			List<Pair<String,Double>> termProb = r.runQuery(processedQuery, 10, 10,
+					10);
+
 			System.out.println("======================");
 			StringBuffer response = new StringBuffer();
 			// output the terms and their probabilities
-			for(String term : termProb.keySet()) {
-				response.append(term);
+			for(Pair<String, Double> pair : termProb) {
+				response.append(pair.getFirstElement());
 				response.append(":");
-				response.append(termProb.get(term));
+				response.append(pair.getSecondElement());
 				response.append("\n");
 			}
-			
+
 			System.out.println(response.toString());
 
 			// File indexFile = new File(options._indexPrefix + "/t_test.idx");

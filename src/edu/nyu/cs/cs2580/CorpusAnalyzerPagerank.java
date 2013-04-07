@@ -96,8 +96,6 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
     System.out.println("Loading using " + this.getClass().getName());
     return null;
   }
-
-  
   
     /**
      * This function will create Doc Info File containing Document Info in following format: as well as create a HashSet of 
