@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import edu.nyu.cs.cs2580.QueryHandler.CgiArguments;
@@ -120,14 +121,14 @@ public class PhraseRanker extends Ranker {
 		}
 		System.out.println("");
 
-		HashMap<String, Double> duv = Utilities.getNormalizedVector(dv, 2);
+		Map<String, Double> duv = Utilities.getNormalizedVector(dv, 2);
 		System.out.print("Document unit vector : ");
 		for (String k : duv.keySet()) {
 			System.out.print(k + " : " + duv.get(k) + ", ");
 		}
 		System.out.println("");
 
-		HashMap<String, Double> quv = Utilities.getNormalizedVector(qv, 2);
+		Map<String, Double> quv = Utilities.getNormalizedVector(qv, 2);
 		System.out.print("Query unit vector : ");
 		for (String k : quv.keySet()) {
 			System.out.print(k + " : " + quv.get(k) + ", ");

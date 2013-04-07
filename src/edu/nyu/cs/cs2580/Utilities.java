@@ -3,6 +3,7 @@ package edu.nyu.cs.cs2580;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,11 +45,11 @@ public class Utilities {
 	 * @return dot product of given vectors. Returns -1 if either of the given
 	 *         vectors is null
 	 */
-	public static double getDotProduct(HashMap<String, Double> vec1,
-			HashMap<String, Double> vec2) {
+	public static double getDotProduct(Map<String, Double> vec1,
+			Map<String, Double> vec2) {
 
 		double dotProduct = 0;
-		HashMap<String, Double> v1 = null, v2 = null;
+		Map<String, Double> v1 = null, v2 = null;
 
 		if (vec1 == null || vec2 == null) {
 			System.out.println("Error: One of the vectors is null");
@@ -121,14 +122,14 @@ public class Utilities {
 	 * @return null if given vector is null. Else returns the unit vector of a
 	 *         given vector.
 	 */
-	public static HashMap<String, Double> getNormalizedVector(
-			HashMap<String, Double> vec, double norm) {
+	public static Map<String, Double> getNormalizedVector(
+			Map<String, Double> vec, double norm) {
 
 		if (vec == null) {
 			return null;
 		}
 
-		HashMap<String, Double> unitVec = new HashMap<String, Double>();
+		Map<String, Double> unitVec = new HashMap<String, Double>();
 		double vecNorm = getVectorNorm(vec, norm); // get 2-norm of the vector
 
 		for (String k : vec.keySet()) {
@@ -137,7 +138,7 @@ public class Utilities {
 
 		return unitVec;
 	}
-	
+
 	/**
 	 * @author sujal
 	 * @param vec
@@ -146,7 +147,7 @@ public class Utilities {
 	 *            infinity)
 	 * @return p-norm of the given vector
 	 */
-	public static double getVectorNorm(HashMap<String, Double> vec, Double p) {
+	public static double getVectorNorm(Map<String, Double> vec, Double p) {
 		double norm = 0;
 
 		if (p == 0 || vec == null) {
@@ -160,7 +161,7 @@ public class Utilities {
 
 		return norm;
 	}
-	
+
 	/**
 	 * @author sujal
 	 * @param fileName
@@ -311,10 +312,10 @@ public class Utilities {
 		return sds;
 	}
 
-	public static HashMap<String, Double> getTfIdf(
-			HashMap<String, Double> vec1, HashMap<String, Double> vec2) {
+	public static Map<String, Double> getTfIdf(
+			Map<String, Double> vec1, Map<String, Double> vec2) {
 
-		HashMap<String, Double> tfIdf = new HashMap<String, Double>();
+		Map<String, Double> tfIdf = new HashMap<String, Double>();
 
 		for (String term : vec1.keySet()) {
 			tfIdf.put(term, vec1.get(term) * vec2.get(term));
@@ -322,7 +323,7 @@ public class Utilities {
 
 		return tfIdf;
 	}
-	
+
 	/**
 	 * @author sujal
 	 * 
@@ -341,8 +342,8 @@ public class Utilities {
 		s.useDelimiter("[^a-zA-Z0-9]");
 		while (s.hasNext()) {
 			String term = s.next();
-			
-			//System.out.println("Term = "+term);
+
+			// System.out.println("Term = "+term);
 			Stemmer stemmer = new Stemmer();
 			stemmer.add(term.toCharArray(), term.length());
 			stemmer.stem(); // code of stemmer is modified to compute just
@@ -357,22 +358,22 @@ public class Utilities {
 
 	public static void deleteFilesInDir(String dir) {
 		File directory = new File(dir);
-		if(! directory.exists()) {
+		if (!directory.exists()) {
 			return;
 		}
-		
+
 		File[] files = directory.listFiles();
-		for(File f : files) {
+		for (File f : files) {
 			System.out.println("deleting : " + f.getName());
-			f.delete();			
-		}		
+			f.delete();
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param list
-	 * @return maximum integer from the given list. Returns -1 if list is null or empty.
-	 * Should be used only for non-negative numbers. 
+	 * @return maximum integer from the given list. Returns -1 if list is null
+	 *         or empty. Should be used only for non-negative numbers.
 	 */
 	public static int getMax(int[] list) {
 
@@ -390,20 +391,30 @@ public class Utilities {
 	}
 
 	public static int getMin(int[] list) {
-		
+
 		if (list == null || list.length == 0) {
 			return -1;
 		}
-		
+
 		int min = list[0];
-		
+
 		for (int i : list) {
 			min = Math.min(min, i);
 		}
-		
+
 		return min;
 	}
-	
+
+	public static FilenameFilter createFileNameFilter(final String ext) {
+		FilenameFilter filter = new FilenameFilter() {
+			public boolean accept(File directory, String fileName) {
+				return fileName.endsWith(ext);
+			}
+		};
+
+		return filter;
+	}
+
 	public static HashMap<Integer, Integer> sortByComparator(
 			Map<Integer, Integer> unsortMap) {
 

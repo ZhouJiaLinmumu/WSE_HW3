@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import edu.nyu.cs.cs2580.QueryHandler.CgiArguments;
@@ -65,26 +66,26 @@ public class CosineRanker extends Ranker {
 		Vector<String> dv = Utilities.getNGram(docTokensBody, 1);
 		
 		// get term frequencies in the document
-		HashMap<String, Double> termFreqDoc = Utilities.getTermFreq(dv);
-		HashMap<String, Double> tfDoc = Utilities.getNormalizedVector(
+		Map<String, Double> termFreqDoc = Utilities.getTermFreq(dv);
+		Map<String, Double> tfDoc = Utilities.getNormalizedVector(
 				termFreqDoc, 1d);
 		IndexerFullScan ifs = new IndexerFullScan(_options);
 		_docFull = new DocumentFull(d._docid, ifs);
 		NormalizedTFIDF normTfIdf = new NormalizedTFIDF(_docFull, _indexer);
-		HashMap<String, Double> idfDoc = normTfIdf.invDocFreqVector(tfDoc);
-		HashMap<String, Double> tfIdfDoc = Utilities.getTfIdf(tfDoc, idfDoc);
-		HashMap<String, Double> tfIdfDocNormalised = Utilities
+		Map<String, Double> idfDoc = normTfIdf.invDocFreqVector(tfDoc);
+		Map<String, Double> tfIdfDoc = Utilities.getTfIdf(tfDoc, idfDoc);
+		Map<String, Double> tfIdfDocNormalised = Utilities
 				.getNormalizedVector(tfIdfDoc, 2);
 
 		// System.out.println("proc doc");
 
-		HashMap<String, Double> termFreqQuery = Utilities.getTermFreq(qv);
-		HashMap<String, Double> tfQuery = Utilities.getNormalizedVector(
+		Map<String, Double> termFreqQuery = Utilities.getTermFreq(qv);
+		Map<String, Double> tfQuery = Utilities.getNormalizedVector(
 				termFreqQuery, 1d);
-		HashMap<String, Double> idfQuery = normTfIdf.invDocFreqVector(tfQuery);
-		HashMap<String, Double> tfIdfQuery = Utilities.getTfIdf(tfQuery,
+		Map<String, Double> idfQuery = normTfIdf.invDocFreqVector(tfQuery);
+		Map<String, Double> tfIdfQuery = Utilities.getTfIdf(tfQuery,
 				idfQuery);
-		HashMap<String, Double> tfIdfQueryNormalised = Utilities
+		Map<String, Double> tfIdfQueryNormalised = Utilities
 				.getNormalizedVector(tfIdfQuery, 2);
 
 		double score = Utilities.getDotProduct(tfIdfDocNormalised,

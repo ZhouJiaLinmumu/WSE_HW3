@@ -214,6 +214,7 @@ public class SearchEngine {
         startIndexing();
         break;
       case SERVE:
+    	  System.out.println("in serving mode");
         startServing();
         break;
       default:

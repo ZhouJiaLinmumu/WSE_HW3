@@ -1,15 +1,12 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,7 +69,7 @@ public class IndexerInvertedCompressed extends Indexer {
 			IndexerInvertedCompressed iic = new IndexerInvertedCompressed(
 					options);
 			long start = System.currentTimeMillis();
-			// _docInfoFile = options._indexPrefix + "/" + _docInfoFile;
+			 //_docInfoFile = options._indexPrefix + "/" + _docInfoFile;
 			//iic.constructIndex();
 			iic.loadIndex();
 			long end = System.currentTimeMillis();
@@ -91,7 +88,7 @@ public class IndexerInvertedCompressed extends Indexer {
 	public IndexerInvertedCompressed(Options options) {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
-		
+		_docInfoFile = options._indexPrefix + "/" + _docInfoFile;
 	}
 
 	@Override
@@ -270,7 +267,7 @@ public class IndexerInvertedCompressed extends Indexer {
 		// load doc info file
 		System.out.println("Loading documents info from : " + _docInfoFile);
 
-		try {
+		try {			
 			br = new BufferedReader(new FileReader(_docInfoFile));
 
 			String[] info;
@@ -520,7 +517,7 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 	}
 
-	private static Vector<Integer> getDecoded(String encodedPositions) {
+	public static Vector<Integer> getDecoded(String encodedPositions) {
 		
 		Vector<Character> positionsEncoded = new Vector<Character>();
 		if (encodedPositions != null

@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 public class NormalizedTFIDF {
@@ -63,9 +64,9 @@ public class NormalizedTFIDF {
 	 * @param terms
 	 * @return
 	 */
-	public HashMap<String, Double> invDocFreqVector(
-			HashMap<String, Double> terms) {
-		HashMap<String, Double> idfk = new HashMap<String, Double>();
+	public Map<String, Double> invDocFreqVector(
+			Map<String, Double> terms) {
+		Map<String, Double> idfk = new HashMap<String, Double>();
 		double docCount = 0;
 		double docFreq = 0;
 		double countByFreq = 0;
