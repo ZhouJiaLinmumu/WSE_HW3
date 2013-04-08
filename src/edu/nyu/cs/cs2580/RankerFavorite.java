@@ -101,6 +101,25 @@ public class RankerFavorite extends Ranker {
 
 		List<Pair<String,Double>> expandedQuery = getExpandedQuery(topResults,
 				numTerms);
+		
+		// Write this info to a file with filename=<query>.exp
+		String prfDirName = "data/prf_output";
+		File prfDir = new File(prfDirName);
+		if(prfDir.exists()) {
+			prfDir.delete();
+		}
+		
+		prfDir.mkdir();
+		
+		String expandedQueryFileName = prfDirName + "/" + query._query + ".tsv";
+		StringBuilder sBuilder = new StringBuilder();
+		for(Pair<String, Double> pair : expandedQuery) {
+			sBuilder.append(pair.getFirstElement());
+			sBuilder.append("\t");
+			sBuilder.append(String.valueOf(pair.getSecondElement()));
+			sBuilder.append("\n");
+		}
+		Utilities.writeToFile(expandedQueryFileName, sBuilder.toString(), false);
 
 		return expandedQuery;
 	}
