@@ -462,15 +462,28 @@ public class Utilities {
 		return filter;
 	}
 	
-	public static <T, U extends Number> void sort(List<Pair<T, U>> info, final boolean descending) {
+	public static <T, U extends Number> void sort(List<Pair<T, U>> info, final Map<Integer, String> docIdUriMapping, 
+			final boolean descending) {
 		Collections.sort(info, new Comparator<Pair<T, U>>() {
 
 			@Override
 			public int compare(Pair<T, U> o1, Pair<T, U> o2) {
+				
 				if(descending) {
-					return o2.compareTo(o1);
+					if(o1.getSecondElement().equals(o2.getSecondElement())) {
+						// if numviews are same, compare their uri as tie breaker
+						return docIdUriMapping.get(o2.getFirstElement()).compareTo(docIdUriMapping.get(o1.getFirstElement()));						
+					} else {
+						return o2.compareTo(o1);
+					}
+					
 				} else {
-					return o1.compareTo(o2);
+					if(o1.getSecondElement().equals(o2.getSecondElement())) {
+						// if numviews are same, compare their uri as tie breaker
+						return docIdUriMapping.get(o1.getFirstElement()).compareTo(docIdUriMapping.get(o2.getFirstElement()));
+					} else {
+						return o1.compareTo(o2);
+					}					
 				}
 			}
 		});

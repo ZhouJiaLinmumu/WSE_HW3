@@ -11,6 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 public class Spearman {
+	
+	/*
+	 * If numviews of 2 docs is same, they are sorted according to lexicographical 
+	 * order of their uri. This map is used to store that mapping and will be used 
+	 * for sorting.
+	 */
+	Map<Integer, String> docIdUriMapping = null;
 
 	public Spearman(String[] args) {
 		// Check for invalid invocation of program
@@ -19,6 +26,9 @@ public class Spearman {
 			System.out
 					.println("Usage: java edu.nyu.cs.cs2580.Spearman <PATH-TO-PAGERANKS> <PATH-TO-NUMVIEWS>");
 		} else {
+			
+			docIdUriMapping = getDocidUriMapping();
+			
 			File pageRankFile = new File(args[0]);
 			if (!pageRankFile.exists()) {
 				System.out.println("Error: File " + args[0]
@@ -55,21 +65,16 @@ public class Spearman {
 
 		readPageRankInfo(pageRankFile, pageRankInfo, "\t");
 		readNumViewsInfo(numViewsFile, numViewsInfo, "\t");
-
-		if (pageRankInfo.size() != numViewsInfo.size()) {
-			System.out
-					.println("Error: <PATH-TO-PAGERANKS> and <PATH-TO-NUMVIEWS> contains different number of entries.");
-			System.exit(0);
+		
+		if (pageRankInfo.size()==0 || numViewsInfo.size()==0) {
+			return 0;
 		}
 
-		if (pageRankInfo.size() == 0) {
-			System.out.println("Error: Input files are empty.");
-			System.exit(0);
-		}
-
+		// Get rank values from pagerank info
 		Map<Integer, Integer> rankValuesPageRank = new HashMap<Integer, Integer>();
 		getRankValues(pageRankInfo, rankValuesPageRank);
 
+		// Get rank values from numviews info
 		Map<Integer, Integer> rankValuesNumViews = new HashMap<Integer, Integer>();
 		getRankValues(numViewsInfo, rankValuesNumViews);
 
@@ -79,13 +84,19 @@ public class Spearman {
 	private double getSpearmanCoeff(
 			Map<Integer, Integer> rankValuesPageRank,
 			Map<Integer, Integer> rankValuesNumViews) {
+		
+		// check for null inputs
+		if(rankValuesPageRank==null || rankValuesNumViews==null) {
+			return 0;
+		}
 
-		double coeff = 0;
-		int n = rankValuesPageRank.size();
-		int x = 0; // Holds rank value of a document obtained through page rank
-		int y = 0; // Holds rank value of a document obtained through numviews
+		double coeff = 0;		
+		Integer x = 0; // Holds rank value of a document obtained through page rank
+		Integer y = 0; // Holds rank value of a document obtained through numviews
 		long sum = 0;
-
+		
+		int n = rankValuesPageRank.size();
+		// 
 		if (n == 0) {
 			return 0;
 		}
@@ -94,6 +105,9 @@ public class Spearman {
 		for (Integer docid : rankValuesPageRank.keySet()) {
 			x = rankValuesPageRank.get(docid);
 			y = rankValuesNumViews.get(docid);
+			
+			// If numviews for the docid is not available, it is assumed to be zero.
+			y = y==null? 0 : y;
 
 			sum += Math.pow(x - y, 2);
 		}
@@ -110,8 +124,12 @@ public class Spearman {
 			return null;
 		}
 		
+		// 
+		
+		System.out.println("size = " + docIdUriMapping.size());
+		
 		// Sort the input list
-		Utilities.sort(info, true);
+		Utilities.sort(info, docIdUriMapping, true);
 
 		int rankIndex = 1;
 		int docid;
@@ -124,6 +142,43 @@ public class Spearman {
 		}
 
 		return rankValues;
+	}
+
+	private Map<Integer, String> getDocidUriMapping() {
+
+		BufferedReader br;
+		String line;
+		String _docInfoFile = "data/index/docinfo.inf";
+		final String _docInfoDelim = ";";
+		Map<Integer, String> _docIdUriMap = new HashMap<Integer, String>();
+		
+		// load doc info file
+		System.out.println("Loading documents info from : " + _docInfoFile);
+
+		try {
+			br = new BufferedReader(new FileReader(_docInfoFile));
+			
+			String[] info;
+			DocumentIndexed dIndexed;
+			
+			while ((line = br.readLine()) != null) {
+				info = line.split(_docInfoDelim);
+				
+				int dId = Integer.parseInt(info[0]);
+				dIndexed = new DocumentIndexed(dId);
+				dIndexed.setUrl(info[1]);
+				dIndexed.setTitle(info[2]);
+				long totalWordsInDoc = Long.parseLong(info[3]);
+				dIndexed.setTotalWords(totalWordsInDoc);
+				_docIdUriMap.put(dId, info[1]);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("Loading document info done ...");
+		
+		return _docIdUriMap;
 	}
 
 	private void readNumViewsInfo(File numViewsFile,
