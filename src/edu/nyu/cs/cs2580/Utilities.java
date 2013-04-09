@@ -461,6 +461,20 @@ public class Utilities {
 
 		return filter;
 	}
+	
+	public static <T, U extends Number> void sort(List<Pair<T, U>> info, final boolean descending) {
+		Collections.sort(info, new Comparator<Pair<T, U>>() {
+
+			@Override
+			public int compare(Pair<T, U> o1, Pair<T, U> o2) {
+				if(descending) {
+					return o2.compareTo(o1);
+				} else {
+					return o1.compareTo(o2);
+				}
+			}
+		});
+	}
 
 	public static HashMap<Integer, Integer> sortByComparator(
 			Map<Integer, Integer> unsortMap) {
@@ -485,4 +499,6 @@ public class Utilities {
 		}
 		return sortedMap;
 	}
+
+	
 }
