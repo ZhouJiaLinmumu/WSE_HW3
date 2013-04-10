@@ -1,7 +1,9 @@
 package edu.nyu.cs.cs2580;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -9,15 +11,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.Vector;
 
+import javax.swing.filechooser.FileNameExtensionFilter;
+
 public class Utilities {
+
+	static Set<String> stopWords = null;
 
 	/**
 	 * @author sujal
@@ -77,7 +85,7 @@ public class Utilities {
 
 		return dotProduct;
 	}
-		
+
 	/**
 	 * @author sujal
 	 * @param vec1
@@ -139,7 +147,7 @@ public class Utilities {
 
 		return unitVec;
 	}
-	
+
 	/**
 	 * @author sujal
 	 * @param list
@@ -148,21 +156,20 @@ public class Utilities {
 	 */
 	public static List<Pair<String, Double>> getNormalizedVector(
 			List<Pair<String, Double>> list, double norm) {
-		
-		if(list == null) {
+
+		if (list == null) {
 			return null;
 		}
-		
-		List<Pair<String, Double>> unitVec = new ArrayList<Pair<String,Double>>();		
+
+		List<Pair<String, Double>> unitVec = new ArrayList<Pair<String, Double>>();
 		double vecNorm = getVectorNorm(list, norm);
-		for(Pair<String, Double> pair : list) {
-			unitVec.add(new Pair<String, Double>(pair.getFirstElement(), pair.getSecondElement()/vecNorm));
+		for (Pair<String, Double> pair : list) {
+			unitVec.add(new Pair<String, Double>(pair.getFirstElement(), pair
+					.getSecondElement() / vecNorm));
 		}
-		
+
 		return unitVec;
 	}
-	
-	
 
 	/**
 	 * @author sujal
@@ -172,7 +179,8 @@ public class Utilities {
 	 *            infinity)
 	 * @return p-norm of the given vector
 	 */
-	public static <T, U extends Number> double getVectorNorm(Map<T, U> vec, Double p) {
+	public static <T, U extends Number> double getVectorNorm(Map<T, U> vec,
+			Double p) {
 		double norm = 0;
 
 		if (p == 0 || vec == null) {
@@ -186,7 +194,7 @@ public class Utilities {
 
 		return norm;
 	}
-	
+
 	/**
 	 * @author sujal
 	 * @param vec
@@ -199,11 +207,11 @@ public class Utilities {
 		if (p == 0 || list == null) {
 			return -1;
 		}
-		
-		for(Pair<String, Double> pair : list) {
+
+		for (Pair<String, Double> pair : list) {
 			norm += Math.pow(pair.getSecondElement(), p);
 		}
-		
+
 		norm = Math.pow(norm, 1d / p);
 
 		return norm;
@@ -359,8 +367,8 @@ public class Utilities {
 		return sds;
 	}
 
-	public static Map<String, Double> getTfIdf(
-			Map<String, Double> vec1, Map<String, Double> vec2) {
+	public static Map<String, Double> getTfIdf(Map<String, Double> vec1,
+			Map<String, Double> vec2) {
 
 		Map<String, Double> tfIdf = new HashMap<String, Double>();
 
@@ -415,6 +423,20 @@ public class Utilities {
 			f.delete();
 		}
 	}
+	
+	public static void deleteFilesInDir(String dir, String ext) {
+		File directory = new File(dir);
+		if (!directory.exists() || !directory.isDirectory()) {
+			return;
+		}
+
+		FilenameFilter ff = createFileNameFilter(ext);
+		File[] files = directory.listFiles(ff);
+		for (File f : files) {
+			System.out.println("deleting : " + f.getName());
+			f.delete();
+		}
+	}
 
 	/**
 	 * 
@@ -461,64 +483,134 @@ public class Utilities {
 
 		return filter;
 	}
-	
-	public static <T, U extends Number> void sort(List<Pair<T, U>> info, final Map<Integer, String> docIdUriMapping, 
-			final boolean descending) {
+
+	public static <T, U extends Number> void sort(List<Pair<T, U>> info,
+			final Map<Integer, String> docIdUriMapping, final boolean descending) {
 		Collections.sort(info, new Comparator<Pair<T, U>>() {
 
 			@Override
-			public int compare(Pair<T, U> o1, Pair<T, U> o2) {				
-				if(descending) {
-					if(o1.getSecondElement().equals(o2.getSecondElement())) {
-						//System.out.println(o2.getFirstElement() + " = " + docIdUriMapping.get(o2.getFirstElement()));
-						//System.out.println(o1.getFirstElement() + " = " + docIdUriMapping.get(o1.getFirstElement()));
-						
-						// if scores are same, compare their uri as the tie breaker
-						return docIdUriMapping.get(o2.getFirstElement()).compareTo(docIdUriMapping.get(o1.getFirstElement()));						
+			public int compare(Pair<T, U> o1, Pair<T, U> o2) {
+				if (descending) {
+					if (o1.getSecondElement().equals(o2.getSecondElement())) {
+						// System.out.println(o2.getFirstElement() + " = " +
+						// docIdUriMapping.get(o2.getFirstElement()));
+						// System.out.println(o1.getFirstElement() + " = " +
+						// docIdUriMapping.get(o1.getFirstElement()));
+
+						// if scores are same, compare their uri as the tie
+						// breaker
+						return docIdUriMapping.get(o2.getFirstElement())
+								.compareTo(
+										docIdUriMapping.get(o1
+												.getFirstElement()));
 					} else {
 						return o2.compareTo(o1);
 					}
-					
+
 				} else {
-					if(o1.getSecondElement().equals(o2.getSecondElement())) {
-						// if scores are same, compare their uri as the tie breaker
-						return docIdUriMapping.get(o1.getFirstElement()).compareTo(docIdUriMapping.get(o2.getFirstElement()));
+					if (o1.getSecondElement().equals(o2.getSecondElement())) {
+						// if scores are same, compare their uri as the tie
+						// breaker
+						return docIdUriMapping.get(o1.getFirstElement())
+								.compareTo(
+										docIdUriMapping.get(o2
+												.getFirstElement()));
 					} else {
 						return o1.compareTo(o2);
-					}					
+					}
 				}
 			}
 		});
 	}
-	
+
+	/**
+	 * @author sujal
+	 * @param dirPath
+	 * @return
+	 */
 	public static boolean deleteDir(String dirPath) {
-		
+
 		boolean status = true;
-		
+
 		// Check for null or empty input
-		if(dirPath==null || dirPath.trim().length()==0) {
+		if (dirPath == null || dirPath.trim().length() == 0) {
 			return false;
 		}
-		
+
 		File dir = new File(dirPath);
-		if(! dir.isDirectory()) {
+		if (!dir.isDirectory()) {
 			System.out.println("Error: " + dirPath + " is not a directory");
 			return false;
 		}
-		
+
 		// delete all files in the directory recursively
-		for(File file : dir.listFiles()) {
-			if(file.isDirectory()) {
+		for (File file : dir.listFiles()) {
+			if (file.isDirectory()) {
 				status = status && deleteDir(file.getAbsolutePath());
 			} else {
 				status = status && file.delete();
 			}
 		}
-		
+
 		// Now the directory is empty. So delete directory
 		status = status && dir.delete();
-		
+
 		return status;
+	}
+
+	/**
+	 * @author sujal
+	 * @param word
+	 * @return
+	 */
+	public static boolean isStopWord(String word) {
+
+		if (stopWords == null) {
+			loadStopWords();
+		}
+		
+		return stopWords.contains(getStemmed(word).get(0));
+	}
+
+	/**
+	 * @author sujal
+	 */
+	public static void loadStopWords() {
+		
+		// Ref: http://www.ranks.nl/resources/stopwords.html
+		
+		String stopWordsFile = "data/index/stopwords";
+		String stopWordStr = readFile(stopWordsFile);
+		
+		stopWords = new HashSet<String>();
+		stopWords.addAll(getStemmed(stopWordStr));
+	}
+
+	/**
+	 * @author sujal
+	 * @param file
+	 * @return
+	 */
+	public static String readFile(String file) {
+		StringBuilder sBuilder = new StringBuilder();
+
+		if (file == null || file.trim().length() == 0) {
+			return null;
+		}
+
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(new File(file)));
+			String line = "";
+			while((line = br.readLine()) != null) {
+				sBuilder.append(line);
+				sBuilder.append("\n");
+			}
+			br.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return sBuilder.toString();
 	}
 
 	public static HashMap<Integer, Integer> sortByComparator(
@@ -545,5 +637,4 @@ public class Utilities {
 		return sortedMap;
 	}
 
-	
 }

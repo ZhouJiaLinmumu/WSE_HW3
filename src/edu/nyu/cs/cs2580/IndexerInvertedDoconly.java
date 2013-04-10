@@ -75,7 +75,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		String corpusDirPath = _options._corpusPrefix;
 
 		// delete previously created index
-		// Utilities.deleteFilesInDir(_options._indexPrefix);
+		//Utilities.deleteFilesInDir(_options._indexPrefix, ".idx");
+	  //Utilities.deleteFilesInDir(_options._indexPrefix, ".inf");
 
 		System.out.println("Constructing index from: " + corpusDirPath);
 

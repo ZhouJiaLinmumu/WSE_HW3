@@ -700,9 +700,12 @@ public class RankerComprehensive extends Ranker {
 					}
 
 					/*
-					 * Maintain only top 'numTerms' terms
+					 * Maintain only top 'numTerms' terms. Ignore all the stop words
 					 */
-					topterms.insertWithOverflow(new TermCount(term, termCnt));
+					
+					if(! Utilities.isStopWord(term)) {
+						topterms.insertWithOverflow(new TermCount(term, termCnt));
+					}
 				}
 			}
 			br.close();

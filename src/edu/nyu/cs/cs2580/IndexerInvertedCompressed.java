@@ -103,7 +103,8 @@ public class IndexerInvertedCompressed extends Indexer {
 	@Override
 	public void constructIndex() throws IOException {
 		// delete previously created index
-		// Utilities.deleteFilesInDir(_options._indexPrefix);
+		// Utilities.deleteFilesInDir(_options._indexPrefix, ".idx");
+		//Utilities.deleteFilesInDir(_options._indexPrefix, ".inf");
 
 		String corpusDirPath = _options._corpusPrefix;
 		System.out.println("Constructing index from: " + corpusDirPath);
