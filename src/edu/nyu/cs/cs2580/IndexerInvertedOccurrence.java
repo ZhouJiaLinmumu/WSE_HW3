@@ -1,12 +1,15 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,6 +48,8 @@ public class IndexerInvertedOccurrence extends Indexer {
 	final String _docInfoDelim = ";";
 	final String _wordOccurDelim = ",";
 
+	StringBuffer docInfo = new StringBuffer();
+
 	// Stores all Document (not body vectors) in memory.
 	public Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
 	public Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
@@ -60,6 +65,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 			IndexerInvertedOccurrence iio = new IndexerInvertedOccurrence(options);
 						
 			long start = System.currentTimeMillis();
+			iio._docInfoFile = options._indexPrefix + "/" + _docInfoFile;
 			//iio.constructIndex();
 			// Added for Sujal
 			//iio.phraseAndConjuctiveRetrieval();
@@ -83,6 +89,7 @@ public class IndexerInvertedOccurrence extends Indexer {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
 		
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 	}
 	
 	  @Override
@@ -108,13 +115,16 @@ public class IndexerInvertedOccurrence extends Indexer {
 			  ss.append("Processing : " + _numDocs + " : " + corpusFile.getName());
 			  ss.append("\n");
 				
-			  processDocument(contents, _numDocs);
+			  processDocument(contents, doc, _numDocs);
 
 			  if ((_numDocs + 1) % _maxFiles == 0) {
 				  // write index to intermediate file
 				  writeIndexToFile();
+				  Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
+				  System.out.println("writing to : " + _docInfoFile);
 				  // flush the in memory index
 				  _occuredIndex = new LinkedHashMap<String, Map<Integer,Vector<Integer>>>();
+				  docInfo = new StringBuffer();
 			  }
 
 			  _numDocs++;
@@ -122,11 +132,12 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 		  // write last batch of info
 		  writeIndexToFile();
+		  Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 		}
 
-	  private void processDocument(String content, int docId) {
+	  private void processDocument(String content, Document doc, int docId) {
 
-		  if (content == null || docId < 0) {
+		  if (content == null || doc == null || docId < 0) {
 			  return;
 		  }
 		  int pos = 0;
@@ -155,6 +166,23 @@ public class IndexerInvertedOccurrence extends Indexer {
 			  pos++;
 		  }
 
+		  String uri = doc.baseUri();
+		  uri = uri==null ? "" : uri;
+		  uri = new File(uri).getName();
+
+		  String title = doc.title().trim();
+		  title = title.length()==0 ? uri : title;
+		  
+		  int wordsInDoc = terms.size();
+
+		  docInfo.append(docId);
+		  docInfo.append(_docInfoDelim);		
+		  docInfo.append(uri);
+		  docInfo.append(_docInfoDelim);
+		  docInfo.append(title);
+		  docInfo.append(_docInfoDelim);
+		  docInfo.append(wordsInDoc); // total words in the document
+		  docInfo.append("\n");
 	  }
 
 	  private void writeIndexToFile() throws IOException {
@@ -229,12 +257,144 @@ public class IndexerInvertedOccurrence extends Indexer {
 				Utilities.writeToFile(_options._indexPrefix + "/"
 						+ indexFileNameTmp, indexData.toString(), false);
 				// merge old and new files. e.g. merge a.idx and a_tmp.idx -> a.idx
-				//mergeIndexFiles(indexFileNameOrig, indexFileNameTmp);
-				IndexerUtils.mergeIndexFiles(indexFileNameOrig, indexFileNameTmp, _options, _termDoclistDelim, _doclistDelim, _docCountDelim);
+				mergeIndexFiles(indexFileNameOrig, indexFileNameTmp);
 			}
 		}
 	  
-	  
+	  private void mergeIndexFiles(String file1, String file2) {
+
+			if (file1 == null || file2 == null || file1.trim().length() == 0
+					|| file2.trim().length() == 0) {
+				return;
+			}
+
+			try {
+				File f1 = new File(_options._indexPrefix + "/" + file1);
+				File f2 = new File(_options._indexPrefix + "/" + file2);
+
+				if (!f2.exists()) {
+					return;
+				} else if (f1.exists() && f2.exists()) {
+					String f3Name = _options._indexPrefix + "/"
+							+ System.currentTimeMillis() + ".idx";
+
+					BufferedReader br1 = new BufferedReader(new FileReader(f1));
+					BufferedReader br2 = new BufferedReader(new FileReader(f2));
+					BufferedWriter bw = new BufferedWriter(new FileWriter(f3Name));
+
+					String line1 = br1.readLine(), line2 = br2.readLine();
+					String term1, term2;
+					Scanner scanner1, scanner2;
+					while ((line1 != null) && (line2 != null)) {
+
+						if (line1.trim().length() == 0
+								|| line2.trim().length() == 0) {
+							break;
+						}
+
+						scanner1 = new Scanner(line1);
+						scanner1.useDelimiter("["
+								+ String.valueOf(_termDoclistDelim) + "\n]");
+						scanner2 = new Scanner(line2);
+						scanner2.useDelimiter("["
+								+ String.valueOf(_termDoclistDelim) + "\n]");
+
+						term1 = scanner1.next();
+						term2 = scanner2.next();
+
+						if (term1.compareTo(term2) < 0) {
+							// add term1 info as it is to the file
+							bw.write(line1);
+							bw.newLine();
+
+							line1 = br1.readLine();
+						} else if (term1.compareTo(term2) > 0) {
+							// add term2 info as it is to the file
+							bw.write(line2);
+							bw.newLine();
+
+							line2 = br2.readLine();
+						} else {
+							// write any term as both are same
+							bw.write(term1);
+							bw.write(_termDoclistDelim);
+
+							String tmp1 = scanner1.next();
+							String tmp2 = scanner2.next();
+
+							// write docIds in sorted manner
+							int docid1 = Integer.parseInt(tmp1.split(String
+									.valueOf(_doclistDelim))[0].split(String
+									.valueOf(_docCountDelim))[0]);
+							int docid2 = Integer.parseInt(tmp2.split(String
+									.valueOf(_doclistDelim))[0].split(String
+									.valueOf(_docCountDelim))[0]);
+
+							if (docid1 < docid2) {
+								bw.write(tmp1);
+								// bw.write(_doclistDelim);
+								bw.write(tmp2);
+							} else {
+								bw.write(tmp2);
+								// bw.write(_doclistDelim);
+								bw.write(tmp1);
+							}
+
+							bw.newLine();
+
+							line1 = br1.readLine();
+							line2 = br2.readLine();
+						}
+					}
+
+					// copy the remaining info from non empty file
+					if (line1 != null) {
+						while (line1 != null) {
+							if (line1.trim().length() == 0) {
+								break;
+							}
+
+							bw.write(line1);
+							bw.newLine();
+							line1 = br1.readLine();
+						}
+					} else if (line2 != null) {
+						while (line2 != null) {
+							if (line2.trim().length() == 0) {
+								break;
+							}
+
+							bw.write(line2);
+							bw.newLine();
+							line2 = br2.readLine();
+						}
+					}
+
+					// close open streams
+					br1.close();
+					br2.close();
+					bw.close();
+
+					// delete old files
+					f1.delete();
+					f2.delete();
+
+					new File(f3Name).renameTo(f1);
+				} else if (!f1.exists()) {
+					// here f2 should exist
+
+					// just rename f2 to f1
+					f2.renameTo(f1);
+				}
+
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 
 	@Override
 	public void loadIndex() {
@@ -737,4 +897,5 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 		return 0;
 	}
+
 }

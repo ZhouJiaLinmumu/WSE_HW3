@@ -1,12 +1,15 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,12 +35,13 @@ public class IndexerInvertedCompressed extends Indexer {
 	// retrieved as size of the list (if required).
 	Map<String, Map<Integer, Vector<Character>>> _compressedIndex = new LinkedHashMap<String, Map<Integer, Vector<Character>>>();
 
-	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = new LinkedHashMap<String, Map<Integer, Vector<Integer>>>();	
-	Map<String, Map<Integer, Integer>> termPrevOcc = new HashMap<String, Map<Integer,Integer>>();
-	
+	Map<String, Map<Integer, Vector<Integer>>> _occuredIndex = new LinkedHashMap<String, Map<Integer, Vector<Integer>>>();
+	Map<String, Map<Integer, Integer>> termPrevOcc = new HashMap<String, Map<Integer, Integer>>();
+
 	final int maxNoOfEntriesInMap = 200;
 	int noOfEntriesInmap = 0;
 
+	// "data/title.idx";
 	String _docInfoFile = "docinfo.inf";
 	// Maximum no. of files to process in memory at a time
 	int _maxFiles = 500;
@@ -47,19 +51,22 @@ public class IndexerInvertedCompressed extends Indexer {
 	final String _doclistDelim = " ";
 	final String _docInfoDelim = ";";
 
+	StringBuffer docInfo = new StringBuffer();
+
 	// Stores all Document (not body vectors) in memory.
 	private Vector<DocumentIndexed> _documents = new Vector<DocumentIndexed>();
 	private Map<String, Integer> _docIdUriMap = new HashMap<String, Integer>();
 
 	public static void main(String[] args) {
 		new IndexerInvertedCompressed();
-		
-		//String code = "18E401F41A9704C8219905B929E907B042E01F914C851FDA5CB8269F679226B36CBE2D946CC92F816CCC30C97BC33E9C7F933EC37FFD3ECF01009242AA0100F642E90102E848E501069E4ED20106A450EF0106FE54BF0108D35AC00109ED5BF4010C835BF5010CAD5BF6010D815BF7010EF45CC2010F865CE1010FA565D6010FD365D90112E265E3";
-		//String code = "808382";
-		//Vector<Integer> decoded = getDecoded(code);
-		//for(Integer i : decoded) {
-			//System.out.println(i + ", ");
-		//}
+
+		// String code =
+		// "18E401F41A9704C8219905B929E907B042E01F914C851FDA5CB8269F679226B36CBE2D946CC92F816CCC30C97BC33E9C7F933EC37FFD3ECF01009242AA0100F642E90102E848E501069E4ED20106A450EF0106FE54BF0108D35AC00109ED5BF4010C835BF5010CAD5BF6010D815BF7010EF45CC2010F865CE1010FA565D6010FD365D90112E265E3";
+		// String code = "808382";
+		// Vector<Integer> decoded = getDecoded(code);
+		// for(Integer i : decoded) {
+		// System.out.println(i + ", ");
+		// }
 	}
 
 	public IndexerInvertedCompressed() {
@@ -69,14 +76,15 @@ public class IndexerInvertedCompressed extends Indexer {
 			IndexerInvertedCompressed iic = new IndexerInvertedCompressed(
 					options);
 			long start = System.currentTimeMillis();
-			 //_docInfoFile = options._indexPrefix + "/" + _docInfoFile;
-			//iic.constructIndex();
-			iic.loadIndex();
+			iic._docInfoFile = options._indexPrefix + "/" + _docInfoFile;
+			// _docInfoFile = options._indexPrefix + "/" + _docInfoFile;
+			 iic.constructIndex();
+			//iic.loadIndex();
 			long end = System.currentTimeMillis();
 			System.out.println("time = " + (end - start));
 			System.out.println("total docs loaded = " + iic._documents.size());
 
-			testNextDoc(iic);
+			//testNextDoc(iic);
 
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
@@ -88,7 +96,8 @@ public class IndexerInvertedCompressed extends Indexer {
 	public IndexerInvertedCompressed(Options options) {
 		super(options);
 		System.out.println("Using Indexer: " + this.getClass().getSimpleName());
-		_docInfoFile = options._indexPrefix + "/" + _docInfoFile;
+
+		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 	}
 
 	@Override
@@ -114,26 +123,29 @@ public class IndexerInvertedCompressed extends Indexer {
 			ss.append("Processing : " + _numDocs + " : " + corpusFile.getName());
 			ss.append("\n");
 
-			processDocument(contents, _numDocs);
+			processDocument(contents, doc, _numDocs);
 
 			if ((_numDocs + 1) % _maxFiles == 0) {
 				// write index to intermediate file
-				writeIndexToFile();
+				//writeIndexToFile();
+				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 				// flush the in memory index
 				_compressedIndex = new LinkedHashMap<String, Map<Integer, Vector<Character>>>();
-				termPrevOcc = new HashMap<String, Map<Integer,Integer>>();
+				termPrevOcc = new HashMap<String, Map<Integer, Integer>>();
+				docInfo = new StringBuffer();
 			}
 
 			_numDocs++;
 		}
 
 		// write last batch of info
-		writeIndexToFile();
+		//writeIndexToFile();
+		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 	}
-		
-	private void processDocument(String content, int docId) {
 
-		if (content == null || docId < 0) {
+	private void processDocument(String content, Document doc, int docId) {
+
+		if (content == null || doc == null || docId < 0) {
 			return;
 		}
 
@@ -156,21 +168,41 @@ public class IndexerInvertedCompressed extends Indexer {
 				}
 
 				if (_compressedIndex.get(t).containsKey(docId)) {
-					
+
 					int prevPos = termPrevOcc.get(t).get(docId);
 					int currDeltaEncodedPos = currPos - prevPos;
 					newOccurenceCoded = cu.encodeByteAlign(currDeltaEncodedPos);
-					
+
 					// Map<String, Map<Integer, Vector<Character>>>
-					Vector<Character> encodedPos = _compressedIndex.get(t).get(docId); 
-					for(int i=0 ; i<newOccurenceCoded.length() ; i++) {
+					Vector<Character> encodedPos = _compressedIndex.get(t).get(
+							docId);
+					for (int i = 0; i < newOccurenceCoded.length(); i++) {
 						encodedPos.add(newOccurenceCoded.charAt(i));
-					}					
+					}
 					_compressedIndex.get(t).put(docId, encodedPos);
-					
+
 					termPrevOcc.get(t).put(docId, currPos);
-					
-					
+
+					/*
+					 * Vector<Character> encodedOcc =
+					 * _compressedIndex.get(t).get(docId); Vector<Integer>
+					 * positionsDecoded = du.decodeByteAlign(encodedOcc);
+					 * 
+					 * previousOccurence =
+					 * positionsDecoded.get(positionsDecoded.size() - 1); if
+					 * ((currPos - previousOccurence) > 0) { newOccurence =
+					 * currPos - previousOccurence; newOccurenceCoded =
+					 * cu.encodeByteAlign(newOccurence); previousOccurence =
+					 * newOccurence; } positionsEncoded = new
+					 * Vector<Character>(); for (int i = 0; i <
+					 * encodedOcc.size(); i++) {
+					 * positionsEncoded.add(encodedOcc.get(i)); }
+					 * 
+					 * for (int i = 0; i < newOccurenceCoded.length(); i++) {
+					 * positionsEncoded.add(newOccurenceCoded.charAt(i)); }
+					 */
+
+					// _compressedIndex.get(t).put(docId, positionsEncoded);
 
 				} else {
 					positionsEncoded = new Vector<Character>();
@@ -186,6 +218,24 @@ public class IndexerInvertedCompressed extends Indexer {
 			}
 			currPos++;
 		}
+
+		String uri = doc.baseUri();
+		uri = uri == null ? "" : uri;
+		uri = new File(uri).getName();
+
+		String title = doc.title().trim();
+		title = title.length() == 0 ? uri : title;
+
+		int wordsInDoc = terms.size();
+
+		docInfo.append(docId);
+		docInfo.append(_docInfoDelim);
+		docInfo.append(uri);
+		docInfo.append(_docInfoDelim);
+		docInfo.append(title);
+		docInfo.append(_docInfoDelim);
+		docInfo.append(wordsInDoc); // total words in the document
+		docInfo.append("\n");
 	}
 
 	private void writeIndexToFile() throws IOException {
@@ -254,8 +304,142 @@ public class IndexerInvertedCompressed extends Indexer {
 			Utilities.writeToFile(_options._indexPrefix + "/"
 					+ indexFileNameTmp, indexData.toString(), false);
 			// merge old and new files. e.g. merge a.idx and a_tmp.idx -> a.idx
-			//mergeIndexFiles(indexFileNameOrig, indexFileNameTmp);
-			IndexerUtils.mergeIndexFiles(indexFileNameOrig, indexFileNameTmp, _options, _termDoclistDelim, _doclistDelim, _docCountDelim);
+			mergeIndexFiles(indexFileNameOrig, indexFileNameTmp);
+		}
+	}
+
+	private void mergeIndexFiles(String file1, String file2) {
+
+		if (file1 == null || file2 == null || file1.trim().length() == 0
+				|| file2.trim().length() == 0) {
+			return;
+		}
+
+		try {
+			File f1 = new File(_options._indexPrefix + "/" + file1);
+			File f2 = new File(_options._indexPrefix + "/" + file2);
+
+			if (!f2.exists()) {
+				return;
+			} else if (f1.exists() && f2.exists()) {
+				String f3Name = _options._indexPrefix + "/"
+						+ System.currentTimeMillis() + ".idx";
+
+				BufferedReader br1 = new BufferedReader(new FileReader(f1));
+				BufferedReader br2 = new BufferedReader(new FileReader(f2));
+				BufferedWriter bw = new BufferedWriter(new FileWriter(f3Name));
+
+				String line1 = br1.readLine(), line2 = br2.readLine();
+				String term1, term2;
+				Scanner scanner1, scanner2;
+				while ((line1 != null) && (line2 != null)) {
+
+					if (line1.trim().length() == 0
+							|| line2.trim().length() == 0) {
+						break;
+					}
+
+					scanner1 = new Scanner(line1);
+					scanner1.useDelimiter("["
+							+ String.valueOf(_termDoclistDelim) + "\n]");
+					scanner2 = new Scanner(line2);
+					scanner2.useDelimiter("["
+							+ String.valueOf(_termDoclistDelim) + "\n]");
+
+					term1 = scanner1.next();
+					term2 = scanner2.next();
+
+					if (term1.compareTo(term2) < 0) {
+						// add term1 info as it is to the file
+						bw.write(line1);
+						bw.newLine();
+
+						line1 = br1.readLine();
+					} else if (term1.compareTo(term2) > 0) {
+						// add term2 info as it is to the file
+						bw.write(line2);
+						bw.newLine();
+
+						line2 = br2.readLine();
+					} else {
+						// write any term as both are same
+						bw.write(term1);
+						bw.write(_termDoclistDelim);
+
+						String tmp1 = scanner1.next();
+						String tmp2 = scanner2.next();
+
+						// write docIds in sorted manner
+						int docid1 = Integer.parseInt(tmp1.split(String
+								.valueOf(_doclistDelim))[0].split(String
+								.valueOf(_docCountDelim))[0]);
+						int docid2 = Integer.parseInt(tmp2.split(String
+								.valueOf(_doclistDelim))[0].split(String
+								.valueOf(_docCountDelim))[0]);
+
+						if (docid1 < docid2) {
+							bw.write(tmp1);
+							// bw.write(_doclistDelim);
+							bw.write(tmp2);
+						} else {
+							bw.write(tmp2);
+							// bw.write(_doclistDelim);
+							bw.write(tmp1);
+						}
+
+						bw.newLine();
+
+						line1 = br1.readLine();
+						line2 = br2.readLine();
+					}
+				}
+
+				// copy the remaining info from non empty file
+				if (line1 != null) {
+					while (line1 != null) {
+						if (line1.trim().length() == 0) {
+							break;
+						}
+
+						bw.write(line1);
+						bw.newLine();
+						line1 = br1.readLine();
+					}
+				} else if (line2 != null) {
+					while (line2 != null) {
+						if (line2.trim().length() == 0) {
+							break;
+						}
+
+						bw.write(line2);
+						bw.newLine();
+						line2 = br2.readLine();
+					}
+				}
+
+				// close open streams
+				br1.close();
+				br2.close();
+				bw.close();
+
+				// delete old files
+				f1.delete();
+				f2.delete();
+
+				new File(f3Name).renameTo(f1);
+			} else if (!f1.exists()) {
+				// here f2 should exist
+
+				// just rename f2 to f1
+				f2.renameTo(f1);
+			}
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
@@ -267,14 +451,14 @@ public class IndexerInvertedCompressed extends Indexer {
 		// load doc info file
 		System.out.println("Loading documents info from : " + _docInfoFile);
 
-		try {			
+		try {
 			br = new BufferedReader(new FileReader(_docInfoFile));
 
 			String[] info;
 			DocumentIndexed dIndexed;
 
 			while ((line = br.readLine()) != null) {
-				//System.out.println("line = " + line);
+				// System.out.println("line = " + line);
 				info = line.split(_docInfoDelim);
 
 				int dId = Integer.parseInt(info[0]);
@@ -338,32 +522,30 @@ public class IndexerInvertedCompressed extends Indexer {
 		if (query == null || query._query.trim().length() == 0) {
 			return null;
 		}
-		
+
 		// remove duplicate terms in query
-		//Set<String> queryProcessed = new TreeSet<String>(
-		//Utilities.getStemmed(query._query));
-				
-		if(docid == -1) {
+		// Set<String> queryProcessed = new TreeSet<String>(
+		// Utilities.getStemmed(query._query));
+
+		if (docid == -1) {
 			// It means this is first call to nextDoc for given query.
-			
+
 			System.out.println("Searching ... ");
-			
+
 			// load necessary indices
 			loadIndex(query);
-			
-			//Map<String, Map<Integer, Vector<Integer>>> _occuredIndex
-			/*Map<Integer, Vector<Integer>> m = _occuredIndex.get("new");
-			int totaldocs = m.keySet().size();
-			System.out.println("total docs = " + totaldocs);
-			Vector<Integer> occ = m.get(80);
-			int noofocc = occ.size();
-			System.out.println("noofocc for docid = 80 is : " + noofocc);
-			for(Integer i : occ) {
-				System.out.print(i + ", ");
-			}
-			
-			System.exit(0);*/
-		}			
+
+			// Map<String, Map<Integer, Vector<Integer>>> _occuredIndex
+			/*
+			 * Map<Integer, Vector<Integer>> m = _occuredIndex.get("new"); int
+			 * totaldocs = m.keySet().size(); System.out.println("total docs = "
+			 * + totaldocs); Vector<Integer> occ = m.get(80); int noofocc =
+			 * occ.size(); System.out.println("noofocc for docid = 80 is : " +
+			 * noofocc); for(Integer i : occ) { System.out.print(i + ", "); }
+			 * 
+			 * System.exit(0);
+			 */
+		}
 
 		int[] docIds = new int[query._tokens.size()];
 
@@ -373,8 +555,8 @@ public class IndexerInvertedCompressed extends Indexer {
 		for (String qTerm : query._tokens) {
 			docId = nextDoc(qTerm, docid);
 			docIds[qTokenNo++] = docId;
-			
-			if(docId == -1) {
+
+			if (docId == -1) {
 				break;
 			}
 		}
@@ -389,8 +571,8 @@ public class IndexerInvertedCompressed extends Indexer {
 			for (String qTerm : query._tokens) {
 				docId = nextDoc(qTerm, newDocId);
 				docIds[qTokenNo++] = docId;
-				
-				if(docId == -1) {
+
+				if (docId == -1) {
 					break;
 				}
 			}
@@ -403,30 +585,30 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 
 		// Return docid. At this point, all the entries in the array are same.
-		//return new DocumentIndexed(docIds[0]);
+		// return new DocumentIndexed(docIds[0]);
 		return _documents.get(docIds[0]);
 	}
 
 	public void loadIndex(Query query) {
-		
+
 		query.processQuery();
-		
+
 		// flush the in-memory map if it exceeds its limit of max entries
-		if(noOfEntriesInmap > maxNoOfEntriesInMap) {
+		if (noOfEntriesInmap > maxNoOfEntriesInMap) {
 			_occuredIndex.clear();
 			noOfEntriesInmap = 0;
 		}
-		
+
 		SortedSet<String> qTerms = new TreeSet<String>();
 		qTerms.addAll(Utilities.getStemmed(query._query));
-		
-		for(String qTerm : qTerms) {
-			if(qTerm.trim().length() > 0) {
-				if(! _occuredIndex.containsKey(qTerm)) {
+
+		for (String qTerm : qTerms) {
+			if (qTerm.trim().length() > 0) {
+				if (!_occuredIndex.containsKey(qTerm)) {
 					loadIndex(qTerm);
 				}
 			}
-		}		
+		}
 	}
 
 	/**
@@ -435,7 +617,7 @@ public class IndexerInvertedCompressed extends Indexer {
 	 * @param term
 	 */
 	public void loadIndex(String term) {
-		
+
 		System.out.println("loading for term = " + term);
 
 		String indexFile = _options._indexPrefix + "/" + term.charAt(0)
@@ -458,7 +640,7 @@ public class IndexerInvertedCompressed extends Indexer {
 
 					// load index only for the given term
 					if (token.equals(term)) {
-						
+
 						// create new map entry for current term
 						Map<Integer, Vector<Integer>> docInfoRaw = new HashMap<Integer, Vector<Integer>>();
 
@@ -467,39 +649,37 @@ public class IndexerInvertedCompressed extends Indexer {
 						for (String doc : docInfo) {
 							String[] doc_count = doc.split(_docCountDelim);
 							int docId = Integer.valueOf(doc_count[0]);
-							
+
 							if (!docInfoRaw.containsKey(docId)) {
 
 								String allPositions = doc_count[1];
-								
+
 								Vector<Integer> occurrencesList = getDecoded(allPositions);
 
-								/*positionsEncoded = new Vector<Character>();
-								if (allPositions != null
-										&& !allPositions.equals("")) {
-									for (int i = 0; i < allPositions.length(); i++) {
-										positionsEncoded.add(allPositions
-												.charAt(i));
-									}
-								}
-
-								Vector<Integer> decodedOccurrences = du
-										.decodeByteAlign(positionsEncoded);
-								int prev = 0;
-								int current = 0;
-								Vector<Integer> occurrencesList = new Vector<Integer>();
-								for (int i = 0; i < decodedOccurrences.size(); i++) {
-									current = decodedOccurrences.get(i) + prev;
-									occurrencesList.add(current);
-									prev = current;
-								}*/
+								/*
+								 * positionsEncoded = new Vector<Character>();
+								 * if (allPositions != null &&
+								 * !allPositions.equals("")) { for (int i = 0; i
+								 * < allPositions.length(); i++) {
+								 * positionsEncoded.add(allPositions
+								 * .charAt(i)); } }
+								 * 
+								 * Vector<Integer> decodedOccurrences = du
+								 * .decodeByteAlign(positionsEncoded); int prev
+								 * = 0; int current = 0; Vector<Integer>
+								 * occurrencesList = new Vector<Integer>(); for
+								 * (int i = 0; i < decodedOccurrences.size();
+								 * i++) { current = decodedOccurrences.get(i) +
+								 * prev; occurrencesList.add(current); prev =
+								 * current; }
+								 */
 
 								docInfoRaw.put(docId, occurrencesList);
 
-								_occuredIndex.put(token, docInfoRaw);								
+								_occuredIndex.put(token, docInfoRaw);
 							}
 						}
-						
+
 						noOfEntriesInmap++;
 						break;
 					}
@@ -517,14 +697,12 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 	}
 
-	public static Vector<Integer> getDecoded(String encodedPositions) {
-		
+	private static Vector<Integer> getDecoded(String encodedPositions) {
+
 		Vector<Character> positionsEncoded = new Vector<Character>();
-		if (encodedPositions != null
-				&& !encodedPositions.equals("")) {
+		if (encodedPositions != null && !encodedPositions.equals("")) {
 			for (int i = 0; i < encodedPositions.length(); i++) {
-				positionsEncoded.add(encodedPositions
-						.charAt(i));
+				positionsEncoded.add(encodedPositions.charAt(i));
 			}
 		}
 
@@ -538,13 +716,13 @@ public class IndexerInvertedCompressed extends Indexer {
 			current = decodedOccurrences.get(i) + prev;
 			occurrencesList.add(current);
 			prev = current;
-			//occurrencesList.add(decodedOccurrences.get(i));
+			// occurrencesList.add(decodedOccurrences.get(i));
 		}
-		
+
 		return occurrencesList;
-		
+
 		// TODO Auto-generated method stub
-		//return null;
+		// return null;
 	}
 
 	/**
@@ -576,7 +754,7 @@ public class IndexerInvertedCompressed extends Indexer {
 			query.processQuery();
 
 			// search for a document that contains all the phrase terms
-			DocumentIndexed dIndexed = nextDoc(query, docid);			
+			DocumentIndexed dIndexed = nextDoc(query, docid);
 			if (dIndexed == null) {
 				return -1;
 			} else {
@@ -594,13 +772,15 @@ public class IndexerInvertedCompressed extends Indexer {
 
 					Set<Integer> occurrencesListSorted = new TreeSet<Integer>(
 							_occuredIndex.get(qTerm).get(dIndexed._docid));
-					Integer[] occurrencesList = new Integer[occurrencesListSorted.size()];
+					Integer[] occurrencesList = new Integer[occurrencesListSorted
+							.size()];
 					occurrencesListSorted.toArray(occurrencesList);
 
-					occNo = IndexerUtils.search(currentOccurrence, occurrencesList, true);
+					occNo = IndexerUtils.search(currentOccurrence,
+							occurrencesList, true);
 					occurrences[qTermNo++] = occNo;
-					
-					if(occNo == -1) {
+
+					if (occNo == -1) {
 						break;
 					}
 				}
@@ -621,14 +801,16 @@ public class IndexerInvertedCompressed extends Indexer {
 						}
 
 						// add phrase occurrences info to the index
-						Map<Integer, Vector<Integer>> docInfo = _occuredIndex.get(term);
+						Map<Integer, Vector<Integer>> docInfo = _occuredIndex
+								.get(term);
 						if (!docInfo.containsKey(dIndexed._docid)) {
 							docInfo.put(dIndexed._docid, new Vector<Integer>());
 						}
 						docInfo.get(dIndexed._docid).add(occurrences[0]);
 					}
 
-					// update search parameters for searching for next occurrences of phrase terms 
+					// update search parameters for searching for next
+					// occurrences of phrase terms
 					int minOccurrence = Utilities.getMin(occurrences);
 
 					if (minOccurrence == occurrences[0]) {
@@ -643,24 +825,24 @@ public class IndexerInvertedCompressed extends Indexer {
 					for (String qTerm : phraseTerms) {
 
 						Set<Integer> occurrencesListSorted = new TreeSet<Integer>(
-								_occuredIndex.get(qTerm).get(
-										dIndexed._docid));
+								_occuredIndex.get(qTerm).get(dIndexed._docid));
 						Integer[] occurrencesList = new Integer[occurrencesListSorted
 								.size()];
 						occurrencesListSorted.toArray(occurrencesList);
 
-						occNo = IndexerUtils.search(
-								currentOccurrence, occurrencesList, true);
+						occNo = IndexerUtils.search(currentOccurrence,
+								occurrencesList, true);
 						occurrences[qTermNo++] = occNo;
-						
-						if(occNo == -1) {
+
+						if (occNo == -1) {
 							break;
-						}										
+						}
 					}
 				}
 
 				if (!isPresent) {
-					// if phrase is not present in current document, return next document containing it
+					// if phrase is not present in current document, return next
+					// document containing it
 					return nextDoc(term, dIndexed._docid);
 				} else {
 					// return current document as it contains the phrase
@@ -692,20 +874,20 @@ public class IndexerInvertedCompressed extends Indexer {
 
 	@Override
 	public int corpusDocFrequencyByTerm(String term) {
-		return _occuredIndex.containsKey(term) ? _occuredIndex.get(term)
-				.size() : 0;
+		return _occuredIndex.containsKey(term) ? _occuredIndex.get(term).size()
+				: 0;
 	}
 
 	@Override
 	public int corpusTermFrequency(String term) {
 		int corpusTermFreq = 0;
-		if(_occuredIndex.containsKey(term)) {
+		if (_occuredIndex.containsKey(term)) {
 			Map<Integer, Vector<Integer>> docInfo = _occuredIndex.get(term);
-			for(Integer docId : docInfo.keySet()) {
+			for (Integer docId : docInfo.keySet()) {
 				corpusTermFreq += docInfo.get(docId).size();
 			}
 		}
-		
+
 		return corpusTermFreq;
 	}
 
@@ -714,7 +896,7 @@ public class IndexerInvertedCompressed extends Indexer {
 	 */
 	@Override
 	public int documentTermFrequency(String term, String url) {
-		if(_occuredIndex.containsKey(term)) {
+		if (_occuredIndex.containsKey(term)) {
 			int docId = _docIdUriMap.get(url);
 			return _occuredIndex.get(term).get(docId).size();
 		}

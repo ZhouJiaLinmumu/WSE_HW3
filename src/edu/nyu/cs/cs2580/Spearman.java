@@ -72,10 +72,12 @@ public class Spearman {
 
 		// Get rank values from pagerank info
 		Map<Integer, Integer> rankValuesPageRank = new HashMap<Integer, Integer>();
+		System.out.println("###########  pagerank info");
 		getRankValues(pageRankInfo, rankValuesPageRank);
 
 		// Get rank values from numviews info
 		Map<Integer, Integer> rankValuesNumViews = new HashMap<Integer, Integer>();
+		System.out.println("########## numviews info");
 		getRankValues(numViewsInfo, rankValuesNumViews);
 
 		return getSpearmanCoeff(rankValuesPageRank, rankValuesNumViews);
@@ -123,10 +125,6 @@ public class Spearman {
 		if (info == null || info.size() == 0 || rankValues == null) {
 			return null;
 		}
-		
-		// 
-		
-		System.out.println("size = " + docIdUriMapping.size());
 		
 		// Sort the input list
 		Utilities.sort(info, docIdUriMapping, true);
