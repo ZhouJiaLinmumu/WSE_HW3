@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,16 +31,12 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  */
 public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 
-	// Given Log file to obtain Num Views
-	static String _logFile = "20130301-160000.log";
 	// Stores document info in the format : doc_id; uri; title; term count	
 	static String _docInfoFile = "docinfo.inf";
 	// Stores outbound link info in the format : doc_id inbound1 inbound2 ...inboundn
 	static String _outboundInfoFile = "outboundLinks.inf";
-	// Stores the number of views of all documents
-	static String _pagerankInfoFile = "pagerank.pr";
-	static String _numViews = "numviews.nv";
 	// Stores the page rank of all documents
+	static String _pagerankInfoFile = "pagerank.pr";
 	// Stores inbound link info in the format : doc_id<\t>outbound1 outbound2 ...outboundn
 	// NOTE : This directory should not exist before the program is ran.
 	static String _inboundInfoDir = "mine";
@@ -64,7 +59,7 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	final int numberofIter = 2;
 	int _numberOfDocs = 0;
 
-	public static void main(String args[]) throws InterruptedException, ClassNotFoundException {
+	/*public static void main(String args[]) throws InterruptedException, ClassNotFoundException {
 		new CorpusAnalyzerPagerank();
 	}
 	
@@ -82,15 +77,13 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 		} catch (IOException e) { // TODO Auto-generated
 			e.printStackTrace();
 		}
-	}
+	}*/
 	
 	public CorpusAnalyzerPagerank(Options options) {
 		super(options);
 
 		_docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
 		_outboundInfoFile = _options._indexPrefix + "/" + _outboundInfoFile;
-		_numViews = _options._indexPrefix + "/" + _numViews;
-		_logFile = _options._logPrefix + "/" + _logFile;
 		_inboundInfoDir = _options._indexPrefix + "/" + _inboundInfoDir;
 		_pagerankInfoFile = _options._indexPrefix + "/" + _pagerankInfoFile;
 	}
@@ -117,10 +110,16 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	@Override
 	public void prepare() throws IOException {
 		System.out.println("Preparing " + this.getClass().getName());
+		File f = new File(_outboundInfoFile);
+		if(f.exists()) {
+			f.delete();
+		}
+		createDocInfo();
 		String corpusDirPath = _options._corpusPrefix;		
 		int docId = 0;
 		double initialPageRank;
-		Set<Integer> outboundURISet;
+		String outBoundLink = "";
+		int outBoundSize;
 		StringBuffer info;
 		File corpusDir = new File(corpusDirPath);		
 		for (File corpusFile : corpusDir.listFiles()) {
@@ -128,35 +127,24 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 				continue;
 			}
 			System.out.println("Processing Doc ID for prepare function = "+docId);
-			Document doc = Jsoup.parse(corpusFile, "UTF-8");
-			if(doc == null) {
-				continue;
-			}
-			
-			try {
-				outboundURISet = getOutboundURISet(corpusFile);
-				if(outboundURISet != null && outboundURISet.size() != 0) {
-					docIdAndOutboundSize.put(docId, outboundURISet.size());
-				}
-				else {
-					docIdAndOutboundSize.put(docId, 0);
-				}
-				
-				info = new StringBuffer();
-				info.append(docId);
-				info.append(" ");
-				for(int uriId : outboundURISet) {
-					info.append(uriId);
+
+			HeuristicLinkExtractor hle = new HeuristicLinkExtractor(corpusFile);
+			info = new StringBuffer();
+			info.append(docId);
+			info.append(" ");
+			outBoundSize = 0;
+			while((outBoundLink = hle.getNextInCorpusLinkTarget()) != null) {
+				if(docNameAndId.containsKey(outBoundLink)) {
+					outBoundSize++;
+					info.append(docNameAndId.get(outBoundLink));
 					info.append(" ");
 				}
-				info.append("\n");
-				Utilities.writeToFile(_outboundInfoFile, info.toString(), true);
-
-			} catch (BadLocationException e) {
-				System.out.println("BadLocationException :"+e.getMessage());
-				e.printStackTrace();
 			}
-			
+			info.append("\n");
+			docIdAndOutboundSize.put(docId, outBoundSize);
+
+			Utilities.writeToFile(_outboundInfoFile, info.toString(), true);
+
 			// Initial Page rank for each document is assumed to be equally divided among all documents.
 			initialPageRank = (double) 1 / _numberOfDocs;
 			oldDocPagerank.put(docId, initialPageRank);
@@ -295,6 +283,8 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	 * @throws ClassNotFoundException
 	 */
 	public int getInboundLinks(String inputFile, String outputPath) throws IOException, InterruptedException, ClassNotFoundException {
+		Utilities.deleteDir(outputPath);
+		
 		Job job = new Job();
 		job.setJarByClass(CorpusAnalyzerPagerank.class);
 		job.setJobName("CorpusAnalyzerPagerank");
@@ -323,86 +313,17 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	@Override
 	public void compute() throws IOException {
 		System.out.println("Computing using " + this.getClass().getName());
-		// Creating Num Views File
-		File logF = new File(_logFile);
-		createAndWriteNumViews(logF);
-
+		File f = new File(_pagerankInfoFile);
+		if(f.exists()) {
+			f.delete();
+		}
 		File inBoundFile = new File(_inboundInfoDir + "/" + _inboundInfoFile);
 		computePageRank(inBoundFile);
 		writeDocPagerankToFile();
 		return;
 	}
 	
-	/**
-	 * This function obtains number of views from the given log file 
-	 * for each document present in the corpus and writes num views to an external file.
-	 * For documents whose info is not present in the log file, this function puts 0 for those
-	 * documents.
-	 * @param logFile
-	 * @throws IOException
-	 */
-	public void createAndWriteNumViews(File logFile) throws IOException {
-		Map<Integer, Integer> numViewsMap = new HashMap<Integer, Integer>();
-		BufferedReader br = new BufferedReader(new FileReader(logFile));
-		String line = "";
-		String contents[];
-		String currentURI;
-		StringBuffer tempBuffer;
-		while((line = br.readLine()) != null) {
-			contents = line.split(" ");
-			currentURI = contents[1];
-			tempBuffer = new StringBuffer();
-	         int i = 0;
-	         while (i < currentURI.length()) {
-	            char charecterAt = currentURI.charAt(i);
-	            if (charecterAt == '%') {
-	               tempBuffer.append("<percentage>");
-	            } else if (charecterAt == '+') {
-	               tempBuffer.append("<plus>");
-	            } else {
-	               tempBuffer.append(charecterAt);
-	            }
-	            i++;
-	         }
-	         currentURI = tempBuffer.toString();
-	         currentURI = URLDecoder.decode(currentURI, "ISO-8859-1");
-	         currentURI = currentURI.replaceAll("<percentage>", "%");
-	         currentURI = currentURI.replaceAll("<plus>", "+");
-	         if(docNameAndId.containsKey(currentURI)) {
-	        	 try {
-	        		 numViewsMap.put(docNameAndId.get(currentURI), Integer.parseInt(contents[2]));
-	        	 } catch (Exception e) {
-	        		 System.out.println("Exception caught in line="+line);
-	        		 numViewsMap.put(docNameAndId.get(currentURI), 0);
-	        	 }
-	         }
-		}
-		// This loop checks and inserts 0 for those documents whose info is not present in given log file.
-		for(int i = 0; i < _numberOfDocs; i++) {
-			if(!numViewsMap.containsKey(i)) {
-				numViewsMap.put(i, 0);
-			}
-		}
-		// Write the num views map to an external file.
-		writeNumViewsToFile(numViewsMap);
-	}
-	
-	/**
-	 * Writes the num Views Map to an external file. File is always appended.
-	 */
-	public void writeNumViewsToFile(Map<Integer, Integer> numViewsMap) {
-		StringBuffer info; 
-		Iterator<Entry<Integer, Integer>> it = numViewsMap.entrySet().iterator();
-		while(it.hasNext()) {
-			info = new StringBuffer();
-			Map.Entry<Integer, Integer> pairs = (Map.Entry<Integer, Integer>)it.next();
-			info.append(pairs.getKey());
-			info.append("\t");
-			info.append(pairs.getValue());
-			info.append("\n");
-			Utilities.writeToFile(_numViews, info.toString(), true);
-		}
-	}
+
 	
 	/**
 	 * This function does the actual computation of page rank and stores in memory.
@@ -495,7 +416,15 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	@Override
 	public Object load() throws IOException {
 		System.out.println("Loading using " + this.getClass().getName());
-		return null;
+		Map<Integer, Double> loadPagerank = new HashMap<Integer, Double>();
+		BufferedReader br = new BufferedReader(new FileReader(_pagerankInfoFile));
+		String line = "";
+		String contents[];
+		while((line = br.readLine()) != null) {
+			contents = line.split("\t");
+			loadPagerank.put(Integer.parseInt(contents[0]), Double.parseDouble(contents[1]));
+		}
+		return loadPagerank;
 	}
 
 
@@ -507,9 +436,13 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	 * @return a set of all Doc URI's(i.e; doc names) present in corpus
 	 * @throws IOException
 	 */
-	public void createDocInfo() throws IOException{
-		String corpusDirPath = _options._corpusPrefix;		
+	public void createDocInfo() throws IOException {
+		String corpusDirPath = _options._corpusPrefix;
 		System.out.println("Constructing Document Info from: " + corpusDirPath);
+		File f = new File(_docInfoFile);
+		if(f.exists()) {
+			f.delete();
+		}
 		StringBuffer docInfo;
 		int docId = 0;
 		File corpusDir = new File(corpusDirPath);		

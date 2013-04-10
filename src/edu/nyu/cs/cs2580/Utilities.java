@@ -488,6 +488,36 @@ public class Utilities {
 			}
 		});
 	}
+	
+	public static boolean deleteDir(String dirPath) {
+		
+		boolean status = true;
+		
+		// Check for null or empty input
+		if(dirPath==null || dirPath.trim().length()==0) {
+			return false;
+		}
+		
+		File dir = new File(dirPath);
+		if(! dir.isDirectory()) {
+			System.out.println("Error: " + dirPath + " is not a directory");
+			return false;
+		}
+		
+		// delete all files in the directory recursively
+		for(File file : dir.listFiles()) {
+			if(file.isDirectory()) {
+				status = status && deleteDir(file.getAbsolutePath());
+			} else {
+				status = status && file.delete();
+			}
+		}
+		
+		// Now the directory is empty. So delete directory
+		status = status && dir.delete();
+		
+		return status;
+	}
 
 	public static HashMap<Integer, Integer> sortByComparator(
 			Map<Integer, Integer> unsortMap) {

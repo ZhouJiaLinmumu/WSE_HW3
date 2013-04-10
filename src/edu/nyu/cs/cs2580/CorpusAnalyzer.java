@@ -32,9 +32,6 @@ public abstract class CorpusAnalyzer {
    * 
    * @author congyu
    */
-	//TODO : This line is to be deleted
-	public CorpusAnalyzer() {}
-	
   protected static class HeuristicLinkExtractor {
     private static final Pattern LINK_PATTERN =
         Pattern.compile("<[a|A].*?href=\"([^ /#]*)\".*?>");
