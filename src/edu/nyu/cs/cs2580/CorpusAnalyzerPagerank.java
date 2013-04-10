@@ -36,7 +36,7 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
 	// Stores outbound link info in the format : doc_id inbound1 inbound2 ...inboundn
 	static String _outboundInfoFile = "outboundLinks.inf";
 	// Stores the page rank of all documents
-	static String _pagerankInfoFile = "pagerank.pr";
+	static String _pagerankInfoFile = "pagerank.tsv";
 	// Stores inbound link info in the format : doc_id<\t>outbound1 outbound2 ...outboundn
 	// NOTE : This directory should not exist before the program is ran.
 	static String _inboundInfoDir = "mine";

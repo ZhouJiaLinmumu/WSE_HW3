@@ -203,11 +203,11 @@ class QueryHandler implements HttpHandler {
 		} else if(uriPath.equals("/prf")) {
 			// do the query expansion
 			
-			if(ranker instanceof RankerFavorite) {
-				RankerFavorite rankerFavorite = (RankerFavorite) ranker;
+			if(ranker instanceof RankerComprehensive) {
+				RankerComprehensive rankerComprehensive = (RankerComprehensive) ranker;
 				
 				long start = System.currentTimeMillis();
-				List<Pair<String,Double>> termProb = rankerFavorite.runQuery(processedQuery,
+				List<Pair<String,Double>> termProb = rankerComprehensive.runQuery(processedQuery,
 						cgiArgs._numResults, cgiArgs._numDocs, cgiArgs._numTerms);
 				long end = System.currentTimeMillis();
 				

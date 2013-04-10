@@ -77,7 +77,7 @@ public class Utilities {
 
 		return dotProduct;
 	}
-
+		
 	/**
 	 * @author sujal
 	 * @param vec1
@@ -123,18 +123,18 @@ public class Utilities {
 	 * @return null if given vector is null. Else returns the unit vector of a
 	 *         given vector.
 	 */
-	public static Map<String, Double> getNormalizedVector(
-			Map<String, Double> vec, double norm) {
+	public static <T, U extends Number> Map<T, Double> getNormalizedVector(
+			Map<T, U> vec, double norm) {
 
 		if (vec == null) {
 			return null;
 		}
 
-		Map<String, Double> unitVec = new HashMap<String, Double>();
+		Map<T, Double> unitVec = new HashMap<T, Double>();
 		double vecNorm = getVectorNorm(vec, norm); // get 2-norm of the vector
 
-		for (String k : vec.keySet()) {
-			unitVec.put(k, vec.get(k) / vecNorm);
+		for (T k : vec.keySet()) {
+			unitVec.put(k, (vec.get(k).doubleValue() / vecNorm));
 		}
 
 		return unitVec;
@@ -172,15 +172,15 @@ public class Utilities {
 	 *            infinity)
 	 * @return p-norm of the given vector
 	 */
-	public static double getVectorNorm(Map<String, Double> vec, Double p) {
+	public static <T, U extends Number> double getVectorNorm(Map<T, U> vec, Double p) {
 		double norm = 0;
 
 		if (p == 0 || vec == null) {
 			return -1;
 		}
 
-		for (String k : vec.keySet()) {
-			norm += Math.pow(vec.get(k), p);
+		for (T k : vec.keySet()) {
+			norm += Math.pow(vec.get(k).doubleValue(), p);
 		}
 		norm = Math.pow(norm, 1d / p);
 

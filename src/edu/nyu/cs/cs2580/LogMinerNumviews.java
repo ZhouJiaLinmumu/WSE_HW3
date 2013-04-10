@@ -17,6 +17,8 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  */
 public class LogMinerNumviews extends LogMiner {
 
+  // Loads the doc info file
+  static String _docInfoFile = "docinfo.inf";
   // Given Log file to obtain Num Views
   static String _logFile = "20130301-160000.log";
   //Stores the number of views of all documents
@@ -27,10 +29,29 @@ public class LogMinerNumviews extends LogMiner {
   final String _docInfoDelim = ";";
   int _numberOfDocs = 0;
   
+  /*public static void main(String args[]) {
+		new LogMinerNumviews();
+	}
+  
+  public LogMinerNumviews() {
+		try {
+			Options options = new Options("conf/engine.conf");
+			LogMinerNumviews capr = new LogMinerNumviews(options);
+			long start = System.currentTimeMillis();
+			capr.compute();
+			long end = System.currentTimeMillis();
+			System.out.println("time = " + (end - start));
+
+		} catch (IOException e) { // TODO Auto-generated
+			e.printStackTrace();
+		}
+	}*/
+  
   public LogMinerNumviews(Options options) {
     super(options);
     _logFile = _options._logPrefix + "/" + _logFile;
     _numViews = _options._indexPrefix + "/" + _numViews;
+    _docInfoFile = _options._indexPrefix + "/" + _docInfoFile;
   }
 
   /**
@@ -53,6 +74,8 @@ public class LogMinerNumviews extends LogMiner {
 	if(f.exists()) {
 		f.delete();
 	}
+	// Loading Doc Info file
+	loadDocNameIdMap();
 	// Creating Num Views File
 	File logF = new File(_logFile);
 	createAndWriteNumViews(logF);
@@ -130,8 +153,8 @@ public class LogMinerNumviews extends LogMiner {
 		}
 	}
 
-	public void loadDocNameIdMap(File docInfoFile) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(docInfoFile));
+	public void loadDocNameIdMap() throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(_docInfoFile));
 		String line = "";
 		String contents[];
 		while((line = br.readLine()) != null) {
