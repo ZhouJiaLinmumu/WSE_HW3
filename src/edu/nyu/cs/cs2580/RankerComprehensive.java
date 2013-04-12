@@ -422,7 +422,7 @@ public class RankerComprehensive extends Ranker {
 		 */
 		int prevNoOfFiles;
 
-		System.out.println("no of files = " + noOfFiles);
+		//System.out.println("no of files = " + noOfFiles);
 		/*
 		 * Loop till all .cnt files are not merged into just 1 file
 		 */

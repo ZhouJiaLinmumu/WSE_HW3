@@ -9,7 +9,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,7 +120,6 @@ public class IndexerInvertedOccurrence extends Indexer {
 			  if ((_numDocs + 1) % _maxFiles == 0) {
 				  // write index to intermediate file
 				  writeIndexToFile();
-				  Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 				  System.out.println("writing to : " + _docInfoFile);
 				  // flush the in memory index
 				  _occuredIndex = new LinkedHashMap<String, Map<Integer,Vector<Integer>>>();
@@ -133,7 +131,6 @@ public class IndexerInvertedOccurrence extends Indexer {
 
 		  // write last batch of info
 		  writeIndexToFile();
-		  Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
 		}
 
 	  private void processDocument(String content, Document doc, int docId) {

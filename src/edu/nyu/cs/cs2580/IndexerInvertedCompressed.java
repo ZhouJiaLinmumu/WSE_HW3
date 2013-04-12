@@ -9,7 +9,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -128,8 +127,7 @@ public class IndexerInvertedCompressed extends Indexer {
 
 			if ((_numDocs + 1) % _maxFiles == 0) {
 				// write index to intermediate file
-				//writeIndexToFile();
-				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
+				writeIndexToFile();
 				// flush the in memory index
 				_compressedIndex = new LinkedHashMap<String, Map<Integer, Vector<Character>>>();
 				termPrevOcc = new HashMap<String, Map<Integer, Integer>>();
@@ -140,8 +138,7 @@ public class IndexerInvertedCompressed extends Indexer {
 		}
 
 		// write last batch of info
-		//writeIndexToFile();
-		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
+		writeIndexToFile();
 	}
 
 	private void processDocument(String content, Document doc, int docId) {

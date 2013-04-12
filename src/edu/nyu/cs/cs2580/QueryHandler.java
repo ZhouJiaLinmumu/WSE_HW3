@@ -3,7 +3,6 @@ package edu.nyu.cs.cs2580;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import com.sun.net.httpserver.Headers;
@@ -187,6 +186,7 @@ class QueryHandler implements HttpHandler {
 			long end = System.currentTimeMillis();
 			StringBuffer response = new StringBuffer();
 
+			response.append("Query : " + processedQuery._query + "\n");
 			response.append("Time required : " + (end - start) + "ms\n\n");
 			switch (cgiArgs._outputFormat) {
 			case TEXT:
@@ -211,7 +211,8 @@ class QueryHandler implements HttpHandler {
 						cgiArgs._numResults, cgiArgs._numDocs, cgiArgs._numTerms);
 				long end = System.currentTimeMillis();
 				
-				StringBuffer response = new StringBuffer();
+				StringBuffer response = new StringBuffer();				
+				response.append("Query : " + processedQuery._query + "\n");
 				response.append("Time required : " + (end - start) + "ms\n\n");
 				// output the terms and their probabilities
 				for(Pair<String, Double> pair : termProb) {

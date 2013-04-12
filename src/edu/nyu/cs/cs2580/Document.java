@@ -66,8 +66,8 @@ class Document implements Serializable {
   private String _url = "";
   
   // Basic information for ranking
-  private float _pageRank = 0.0f;
-  private int _numViews = 0;
+  private float _pageRank = -1;
+  private int _numViews = -1;
 
   public Document(int docid) {
     _docid = docid;

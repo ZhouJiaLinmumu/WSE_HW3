@@ -21,8 +21,6 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.Vector;
 
-import javax.swing.filechooser.FileNameExtensionFilter;
-
 public class Utilities {
 
 	static Set<String> stopWords = null;
@@ -423,7 +421,7 @@ public class Utilities {
 			f.delete();
 		}
 	}
-	
+
 	public static void deleteFilesInDir(String dir, String ext) {
 		File directory = new File(dir);
 		if (!directory.exists() || !directory.isDirectory()) {
@@ -492,12 +490,8 @@ public class Utilities {
 			public int compare(Pair<T, U> o1, Pair<T, U> o2) {
 				if (descending) {
 					if (o1.getSecondElement().equals(o2.getSecondElement())) {
-						// System.out.println(o2.getFirstElement() + " = " +
-						// docIdUriMapping.get(o2.getFirstElement()));
-						// System.out.println(o1.getFirstElement() + " = " +
-						// docIdUriMapping.get(o1.getFirstElement()));
 
-						// if scores are same, compare their uri as the tie
+						// if values are same, compare their uri as the tie
 						// breaker
 						return docIdUriMapping.get(o2.getFirstElement())
 								.compareTo(
@@ -506,10 +500,9 @@ public class Utilities {
 					} else {
 						return o2.compareTo(o1);
 					}
-
 				} else {
 					if (o1.getSecondElement().equals(o2.getSecondElement())) {
-						// if scores are same, compare their uri as the tie
+						// if values are same, compare their uri as the tie
 						// breaker
 						return docIdUriMapping.get(o1.getFirstElement())
 								.compareTo(
@@ -538,6 +531,10 @@ public class Utilities {
 		}
 
 		File dir = new File(dirPath);
+		if(! dir.exists()) {
+			return true;
+		}
+		
 		if (!dir.isDirectory()) {
 			System.out.println("Error: " + dirPath + " is not a directory");
 			return false;
@@ -568,7 +565,7 @@ public class Utilities {
 		if (stopWords == null) {
 			loadStopWords();
 		}
-		
+
 		return stopWords.contains(getStemmed(word).get(0));
 	}
 
@@ -576,12 +573,12 @@ public class Utilities {
 	 * @author sujal
 	 */
 	public static void loadStopWords() {
-		
+
 		// Ref: http://www.ranks.nl/resources/stopwords.html
-		
+
 		String stopWordsFile = "data/index/stopwords";
 		String stopWordStr = readFile(stopWordsFile);
-		
+
 		stopWords = new HashSet<String>();
 		stopWords.addAll(getStemmed(stopWordStr));
 	}
@@ -599,9 +596,10 @@ public class Utilities {
 		}
 
 		try {
-			BufferedReader br = new BufferedReader(new FileReader(new File(file)));
+			BufferedReader br = new BufferedReader(new FileReader(
+					new File(file)));
 			String line = "";
-			while((line = br.readLine()) != null) {
+			while ((line = br.readLine()) != null) {
 				sBuilder.append(line);
 				sBuilder.append("\n");
 			}

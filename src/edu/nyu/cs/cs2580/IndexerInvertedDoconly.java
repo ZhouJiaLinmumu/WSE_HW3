@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -94,8 +93,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
 			if ((_numDocs + 1) % _maxFiles == 0) {
 				// write index to intermediate file
-				// writeIndexToFile();
-				Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
+				writeIndexToFile();
 				_intermediateIndexFiles++;
 
 				// flush the in memory index and document info
@@ -109,8 +107,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 		System.out.println("no of docs processed = " + _numDocs);
 
 		// write last batch of info
-		// writeIndexToFile();
-		Utilities.writeToFile(_docInfoFile, docInfo.toString(), true);
+		writeIndexToFile();
 	}
 
 	private void mergeIndexFiles(String file1, String file2) {

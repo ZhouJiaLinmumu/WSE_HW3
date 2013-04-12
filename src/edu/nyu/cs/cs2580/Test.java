@@ -7,8 +7,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.swing.text.BadLocationException;
 import javax.swing.text.EditorKit;
@@ -26,9 +28,65 @@ import org.jsoup.select.Elements;
  *
  */
 public class Test {
+	
+	public Test() {
+		String pr = "data/index/pagerank.tsv";
+		String nv = "data/index/numviews.tsv";
+		
+		List<Integer> did_pr = new ArrayList<Integer>();
+		List<Integer> did_nv = new ArrayList<Integer>();
+		
+		BufferedReader br = null;
+		String line = "";
+		String[] info = null;
+		String delim = "\t";
+		StringBuilder sb;
+		try {
+			br = new BufferedReader(new FileReader(new File(pr)));
+			while((line=br.readLine()) != null) {
+				info = line.split(delim);
+				did_pr.add(Integer.parseInt(info[0]));
+			}
+			br.close();
+			Collections.sort(did_pr);
+			
+			sb = new StringBuilder();
+			for(Integer id : did_pr) {
+				sb.append(String.valueOf(id));
+				sb.append("\n");
+			}
+			
+			Utilities.writeToFile("data/pr_dids.txt", sb.toString(), false);
+			
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			br = new BufferedReader(new FileReader(new File(nv)));
+			while((line=br.readLine()) != null) {
+				info = line.split(delim);
+				did_nv.add(Integer.parseInt(info[0]));
+			}
+			br.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		Collections.sort(did_nv);
+		
+		sb = new StringBuilder();
+		for(Integer id : did_nv) {
+			sb.append(String.valueOf(id));
+			sb.append("\n");
+		}
+		
+		Utilities.writeToFile("data/nv_dids.txt", sb.toString(), false);
+	}
 
 	public static void main(String[] args) {
 		Test t = new Test();
+		/*
 		try {
 			File f = new File("/home/ravi/websearch/hw3/data/log/20130301-160000.log");
 			t.test3(f);
@@ -36,6 +94,7 @@ public class Test {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		*/
 		/*try {
 			//File file = new File("/home/ravi/websearch/hw3/data/wiki/20th_Century_Fox");
 			//t.test(file);

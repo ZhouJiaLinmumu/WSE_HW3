@@ -72,12 +72,10 @@ public class Spearman {
 
 		// Get rank values from pagerank info
 		Map<Integer, Integer> rankValuesPageRank = new HashMap<Integer, Integer>();
-		System.out.println("###########  pagerank info");
 		getRankValues(pageRankInfo, rankValuesPageRank);
 
 		// Get rank values from numviews info
 		Map<Integer, Integer> rankValuesNumViews = new HashMap<Integer, Integer>();
-		System.out.println("########## numviews info");
 		getRankValues(numViewsInfo, rankValuesNumViews);
 
 		return getSpearmanCoeff(rankValuesPageRank, rankValuesNumViews);
@@ -95,26 +93,36 @@ public class Spearman {
 		double coeff = 0;		
 		Integer x = 0; // Holds rank value of a document obtained through page rank
 		Integer y = 0; // Holds rank value of a document obtained through numviews
-		long sum = 0;
-		
+				
 		int n = rankValuesPageRank.size();
 		// 
 		if (n == 0) {
 			return 0;
 		}
-
-		// Loop through all the docids
+		
+ 		// Loop through all the docids
+		double sum = 0;
+		double denom = (double)(n*n*n - n);
 		for (Integer docid : rankValuesPageRank.keySet()) {
 			x = rankValuesPageRank.get(docid);
 			y = rankValuesNumViews.get(docid);
 			
 			// If numviews for the docid is not available, it is assumed to be zero.
-			y = y==null? 0 : y;
+			//y = y==null? 0 : y;
 
-			sum += Math.pow(x - y, 2);
+			System.out.println(x + " : " + y);
+			double tmp = Math.pow(x-y, 2)/denom; 
+			sum += tmp;
 		}
+		
+		
+		//double num = (double)(6 * sum);
+		
+		//System.out.println("denom = " + denom);
+		//System.out.println("val = " + (num/denom));
 
-		coeff = 1 - (6.0 * sum) / (n * (n * n - 1));
+		//coeff = (double)(1 - (num/denom));
+		coeff = 1 - 6*sum;
 
 		return coeff;
 	}
@@ -134,10 +142,14 @@ public class Spearman {
 
 		// Assign rank values for each docid in the input list according to
 		// their page rank
+		int max = -1;
 		for (Pair<Integer, U> docPageRank : info) {
 			docid = docPageRank.getFirstElement();
+			max = Math.max(max, rankIndex);
 			rankValues.put(docid, rankIndex++);
 		}
+		
+		System.out.println("max = " + max);
 
 		return rankValues;
 	}
@@ -185,12 +197,13 @@ public class Spearman {
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(numViewsFile));
 			String line = "";
-			String[] docPagerankInfo;
+			String[] docNumViewsInfo;
 			while ((line = br.readLine()) != null) {
-				docPagerankInfo = line.split(delim);
+				//System.out.println("line = " + line);
+				docNumViewsInfo = line.split(delim);
 				numViewsInfo.add(new Pair<Integer, Integer>(Integer
-						.parseInt(docPagerankInfo[0]), Integer
-						.parseInt(docPagerankInfo[1])));
+						.parseInt(docNumViewsInfo[0]), Integer
+						.parseInt(docNumViewsInfo[1])));
 			}
 			br.close();
 		} catch (FileNotFoundException e) {
